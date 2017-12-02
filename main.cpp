@@ -9,6 +9,10 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <fstream>
+#include <sstream>
+#include <limits>
+
 
 int main(int argc, char** argv)
 {
@@ -49,8 +53,53 @@ int main(int argc, char** argv)
 			std::cout << "1a: " << suma
 				<< "      1b: " << sumb << std::endl;
 		}
-	}
 
+		case 2:
+		{
+			std::ifstream infile("input/input02.dat");
+			std::string line;
+			int suma = 0;
+			int sumb = 0;
+			while (std::getline(infile, line))
+			{
+				std::istringstream iss(line);
+				int n = 0;
+				int tmp;
+				int min = std::numeric_limits<int>::max();
+				int max = std::numeric_limits<int>::min();
+				while (iss >> tmp)
+				{
+					++n;
+
+					// part a
+					if (tmp > max)
+						max = tmp;
+					if (tmp < min)
+						min = tmp;
+
+					// part b
+					std::istringstream iss2(line);
+					int m = 0;
+					int tmp2;
+					while (iss2 >> tmp2)
+					{
+						++m;
+						if (m == n) continue;
+
+						if (tmp%tmp2 == 0)
+						{
+							sumb += tmp / tmp2;
+							std::cout << "adding " << tmp << " / " << tmp2 << std::endl;
+						}
+					}
+				}
+				suma += max - min;
+			}
+
+			std::cout << "2a: " << suma
+				<< "      1b: " << sumb << std::endl;
+		}
+	}
 
 	return 0;
 }
