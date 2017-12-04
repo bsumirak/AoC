@@ -12,6 +12,7 @@
 #include <fstream>
 #include <sstream>
 #include <limits>
+#include <vector>
 
 
 int main(int argc, char** argv)
@@ -52,6 +53,8 @@ int main(int argc, char** argv)
 
 			std::cout << "1a: " << suma
 				<< "      1b: " << sumb << std::endl;
+
+			break;
 		}
 
 		case 2:
@@ -89,7 +92,7 @@ int main(int argc, char** argv)
 						if (tmp%tmp2 == 0)
 						{
 							sumb += tmp / tmp2;
-							std::cout << "adding " << tmp << " / " << tmp2 << std::endl;
+							//std::cout << "adding " << tmp << " / " << tmp2 << std::endl;
 						}
 					}
 				}
@@ -98,7 +101,56 @@ int main(int argc, char** argv)
 
 			std::cout << "2a: " << suma
 				<< "      1b: " << sumb << std::endl;
+
+			break;
 		}
+
+		case 3:
+		{
+			// part a - solved using only calculator
+			int sola = 326;
+
+			// part b
+			int x = 0;
+			int y = 0;
+			int n = 1;
+			std::vector<std::vector<int> > mem(101); // looking at the solution, 11 would suffice
+			for (size_t i = 0; i < 101; ++i)
+				mem[i].resize(101,0);
+			mem[50][50] = 1;
+			int solb = -1;
+
+			while (true)
+			{
+				if (y <= x && y <= -x) // new ring and lower side
+					x += 1;
+				else if (y < x && y >= -x) // right side
+					y += 1;
+				else if (y >= x && y > -x) // upper side
+					x -= 1;
+				else
+					y -= 1;
+
+				mem[x+50][y+50] += mem[x+49][y+51] + mem[x+50][y+51] + mem[x+51][y+51]
+							 	 + mem[x+49][y+50] + mem[x+50][y+50] + mem[x+51][y+50]
+							 	 + mem[x+49][y+49] + mem[x+50][y+49] + mem[x+51][y+49];
+
+				if (mem[x+50][y+50] > 361527)
+				{
+					solb = mem[x+50][y+50];
+					break;
+				}
+				if (x == 49 && y == -49)
+					break; // for mem safety;
+			}
+
+			std::cout << "3a: " << sola
+				<< "      3b: " << solb << std::endl;
+
+			break;
+		}
+
+		default: break;
 	}
 
 	return 0;
