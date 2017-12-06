@@ -13,6 +13,8 @@
 #include <sstream>
 #include <limits>
 #include <vector>
+#include <set>
+#include <map>
 
 
 int main(int argc, char** argv)
@@ -146,6 +148,238 @@ int main(int argc, char** argv)
 
 			std::cout << "3a: " << sola
 				<< "      3b: " << solb << std::endl;
+
+			break;
+		}
+
+		case 4:
+		{
+			std::ifstream infile("input/input04.dat");
+			std::string line;
+			int suma = 0;
+			int sumb = 0;
+			while (std::getline(infile, line))
+			{
+				std::istringstream iss(line);
+
+				// part a
+				std::set<std::string> passphrase;
+				std::string tmp;
+				bool valid = true;
+				while (iss >> tmp)
+				{
+					std::pair<std::set<std::string>::iterator, bool> res = passphrase.insert(tmp);
+					if (!res.second)
+					{
+						std::cout << "passphrase invalid" << std::endl;
+						valid = false;
+						break;
+					}
+				}
+
+				if (valid) ++suma;
+
+				// part b
+				std::vector<std::string> pp;
+				valid = true;
+				std::istringstream issb(line);
+				while (issb >> tmp)
+				{
+					// compare with each already processed word in phrase
+					size_t sz = pp.size();
+					for (size_t i = 0; i < sz; ++i)
+					{
+						const std::string& cur = pp[i];
+						size_t nChar = cur.size();
+
+						if (tmp.size() != nChar)
+							continue;
+
+						// save all char frequencies in map for current and new string
+						std::map<char, size_t> mTmp, mCur;
+						for (size_t c = 0; c < nChar; ++c)
+						{
+							std::map<char, size_t>::iterator itTmp, itCur;
+
+							if ((itTmp = mTmp.find(tmp[c])) != mTmp.end())
+								++(itTmp->second);
+							else
+								mTmp[tmp[c]] = 1;
+
+							if ((itCur = mCur.find(cur[c])) != mCur.end())
+								++(itCur->second);
+							else
+								mCur[cur[c]] = 1;
+						}
+
+						// compare frequencies
+						bool unequal = false;
+						std::map<char, size_t>::const_iterator itTmp = mTmp.begin();
+						std::map<char, size_t>::const_iterator itTmpEnd = mTmp.end();
+						for (; itTmp != itTmpEnd; ++itTmp)
+						{
+							char c = itTmp->first;
+							size_t cnt = itTmp->second;
+							std::map<char, size_t>::iterator itCur;
+							if ((itCur = mCur.find(c)) != mCur.end())
+							{
+								if (itCur->second != cnt)
+								{
+									unequal = true;
+									break;
+								}
+							}
+							else
+							{
+								unequal = true;
+								break;
+							}
+						}
+
+
+						if (!unequal)
+						{
+							valid = false;
+							break;
+						}
+					}
+
+					// if no double entry, add word to phrase; otherwise phrase invalid
+					if (valid)
+						pp.push_back(tmp);
+					else
+						break;
+				}
+
+				if (valid)
+					++sumb;
+			}
+
+			std::cout << "4a: " << suma
+				<< "      4b: " << sumb << std::endl;
+
+			break;
+		}
+
+		case 5:
+		{
+			// read list
+			std::ifstream infile("input/input05.dat");
+			int tmp;
+			std::vector<int> jumpList;
+			jumpList.reserve(1000);
+			while (infile >> tmp)
+				jumpList.push_back(tmp);
+
+			// make a copy for b
+			size_t sz = jumpList.size();
+			std::vector<int> jumpListb(jumpList);
+
+			// part a
+			size_t nja = 0;
+			int* jla = &jumpList[0];
+			int* jlb = jla + jumpList.size();
+			int* jlp = jla;
+			while (jlp < jlb && jlp >= jla)
+			{
+				++nja;
+				jlp += (*jlp)++; // jump-increment
+			}
+
+			// part b
+			jumpList.swap(jumpListb);
+			int njb = 0;
+			jla = &jumpList[0];
+			jlb = jla + jumpList.size();
+			jlp = jla;
+			while (jlp < jlb && jlp >= jla)
+			{
+				++njb;
+				int jmp = *jlp;
+				*jlp += (*jlp >= 3 ? -1 : 1); // in-/decrement
+				jlp += jmp; // jump
+			}
+
+			std::cout << "5a: " << nja
+				<< "      5b: " << njb << std::endl;
+
+			break;
+		}
+
+		case 6:
+		{
+			// part a and b together (and really brute force)
+			int tmp[] = {14, 0, 15, 12, 11, 11, 3, 5, 1, 6, 8, 4, 9, 1, 8, 4};
+			std::vector<int> mem(tmp, tmp+16);
+			std::vector<std::vector<int> > allStates;
+			allStates.reserve(1000);
+			allStates.push_back(mem);
+
+			int na = 1;
+			int nb;
+			while (true)
+			{
+				// find slot with max.
+				int max = mem[0];
+				size_t maxInd = 0;
+				for (size_t i = 1; i < 16; ++i)
+				{
+					if (mem[i] > max)
+					{
+						max = mem[i];
+						maxInd = i;
+					}
+				}
+
+				// distribute
+				int forAll = max / 16;
+				int rest = max % 16;
+
+				for (size_t i = 0; i < 16; ++i)
+					mem[i] += forAll;
+
+				for (size_t i = maxInd+1; i < maxInd+1+rest; ++i)
+					++mem[i%16];
+
+				mem[maxInd] = forAll;
+
+				// check reoccurrence
+				bool reocc = false;
+				for (size_t i = 0; i < allStates.size(); ++i)
+				{
+					bool same = true;
+					for (size_t j = 0; j < 16; ++j)
+					{
+						if (allStates[i][j] != mem[j])
+						{
+							same = false;
+							break;
+						}
+					}
+
+					if (same)
+					{
+						reocc = true;
+						nb = na - i;
+						break;
+					}
+				}
+
+				if (reocc) break;
+
+				// save and inc
+				allStates.push_back(mem);
+				++na;
+			}
+
+
+			// part b
+
+
+
+
+			std::cout << "6a: " << na
+				<< "      6b: " << nb << std::endl;
 
 			break;
 		}
