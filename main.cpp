@@ -387,6 +387,7 @@ int main(int argc, char** argv)
 			std::string line;
 			std::map<std::string, int> weights;
 			std::map<std::string, std::vector<std::string> > children;
+			std::map<std::string, std::string> parent;
 
 			while (std::getline(infile, line))
 			{
@@ -415,10 +416,13 @@ int main(int argc, char** argv)
 					}
 
 					children[name].push_back(tmp);
+					parent[tmp] = name;
 				}
 
 				// part a
-
+				std::map<std::string, std::vector<std::string> >::const_iterator it = parent.begin();
+				while (it != parent.end())
+					it = parent.find(parent->second);
 		}
 
 		default: break;
