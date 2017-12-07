@@ -15,6 +15,7 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <utility>
 
 
 int main(int argc, char** argv)
@@ -373,15 +374,51 @@ int main(int argc, char** argv)
 			}
 
 
-			// part b
-
-
-
-
 			std::cout << "6a: " << na
 				<< "      6b: " << nb << std::endl;
 
 			break;
+		}
+
+		case 8:
+		{
+			// part a
+			std::ifstream infile("input/input07.dat");
+			std::string line;
+			std::map<std::string, int> weights;
+			std::map<std::string, std::vector<std::string> > children;
+
+			while (std::getline(infile, line))
+			{
+				std::istringstream iss(line);
+
+				// read input
+				std::set<std::string> passphrase;
+				std::string tmp;
+				bool valid = true;
+
+				std::string name;
+				iss >> name;
+				std::string weight;
+				iss >> weight;
+
+				weights[name] = weight;
+
+				int cnt = 0;
+				while (iss >> tmp)
+				{
+					// ignore "->"
+					if (!cnt)
+					{
+						++cnt;
+						continue;
+					}
+
+					children[name].push_back(tmp);
+				}
+
+				// part a
+
 		}
 
 		default: break;
