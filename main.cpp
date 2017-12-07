@@ -18,6 +18,29 @@
 #include <utility>
 
 
+struct node7
+{
+	std::string name;
+	std::vector<node7*> children;
+	node7* parent;
+	int weight;
+	int totelWeight;
+};
+
+
+void build_tree7
+(
+	std::map<std::string, int> weights,
+	std::map<std::string, std::vector<std::string> > children,
+	std::map<std::string, std::string> parent,
+	node7* root
+)
+{
+	root->weight = weights[root->name];
+
+}
+
+
 int main(int argc, char** argv)
 {
 	int day = 1;
@@ -380,9 +403,9 @@ int main(int argc, char** argv)
 			break;
 		}
 
-		case 8:
+		case 7:
 		{
-			// part a
+			// read input
 			std::ifstream infile("input/input07.dat");
 			std::string line;
 			std::map<std::string, int> weights;
@@ -393,7 +416,6 @@ int main(int argc, char** argv)
 			{
 				std::istringstream iss(line);
 
-				// read input
 				std::set<std::string> passphrase;
 				std::string tmp;
 				bool valid = true;
@@ -402,8 +424,10 @@ int main(int argc, char** argv)
 				iss >> name;
 				std::string weight;
 				iss >> weight;
+				tmp = weight.substr(1, weight.size()-2);
+				int w = atoi(tmp.c_str());
 
-				weights[name] = weight;
+				weights[name] = w;
 
 				int cnt = 0;
 				while (iss >> tmp)
@@ -415,14 +439,46 @@ int main(int argc, char** argv)
 						continue;
 					}
 
+					// remove comma
+					if (tmp.c_str()[tmp.size()-1] == ',')
+						tmp = tmp.substr(0,tmp.size()-1);
+
 					children[name].push_back(tmp);
 					parent[tmp] = name;
 				}
+			}
 
-				// part a
-				std::map<std::string, std::vector<std::string> >::const_iterator it = parent.begin();
-				while (it != parent.end())
-					it = parent.find(parent->second);
+			// part a
+			std::map<std::string, std::string>::const_iterator it = parent.begin();
+			while (parent.find(it->second) != parent.end())
+				it = parent.find(it->second);
+			std::string root = it->second;
+
+			// part b
+			std::map<std::string, int>::const_iterator itw = weights.find(root);
+			std::map<std::string, std::vector<std::string> > itc = children.find(root);
+
+			// build a tree
+			node7 rootNode;
+			node7* node = &rootNode;
+
+			while (node)
+			{
+				rootNode.weight = itw->second;
+				size_t sz = itc->second.size();
+				for (size_t i = 0; i < sz; ++i)
+				{
+					node7* child = new node7();
+					child.parent = node;
+
+					node.children.push_back(child);
+				}
+			}
+
+
+
+			std::cout << "7a: " << root
+				<< "      7b: " << 0 << std::endl;
 		}
 
 		default: break;
@@ -430,4 +486,21 @@ int main(int argc, char** argv)
 
 	return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
