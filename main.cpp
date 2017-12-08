@@ -572,6 +572,84 @@ int main(int argc, char** argv)
 
 			std::cout << "7a: " << rootName
 				<< "      7b: " << reqW << std::endl;
+
+			break;
+		}
+
+		case 8:
+		{
+			// part a
+			std::map<std::string, int> reg;
+
+			// read input
+			std::ifstream infile("input/input08.dat");
+			std::string line;
+
+			int maxb = std::numeric_limits<int>::min();
+			while (std::getline(infile, line))
+			{
+				std::istringstream iss(line);
+				std::string affReg;
+				iss >> affReg;
+
+				// create reg if not present already
+				if (reg.find(affReg) == reg.end())
+					reg[affReg] = 0;
+
+				std::string op;
+				iss >> op;
+
+				std::string tmp;
+				iss >> tmp;
+				int opVal = atoi(tmp.c_str());
+				if (op == "dec")
+					opVal *= -1;
+
+				iss >> tmp; // ignore "if"
+
+				std::string condReg;
+				iss >> condReg;
+
+				if (reg.find(condReg) == reg.end())
+					reg[condReg] = 0;
+
+				std::string comp;
+				iss >> comp;
+
+				iss >> tmp;
+				int compVal = atoi(tmp.c_str());
+
+				// perform action
+				bool doAdd = false;
+				if ((comp == "<" && reg[condReg] < compVal)
+					|| (comp == ">" && reg[condReg] > compVal)
+					|| (comp == "<=" && reg[condReg] <= compVal)
+					|| (comp == ">=" && reg[condReg] >= compVal)
+					|| (comp == "==" && reg[condReg] == compVal)
+					|| (comp == "!=" && reg[condReg] != compVal)
+				)
+				{
+					reg[affReg] += opVal;
+					if (reg[affReg] > maxb)
+						maxb = reg[affReg];
+				}
+			}
+
+			// search max after all instructions
+			std::map<std::string, int>::iterator it = reg.begin();
+			std::map<std::string, int>::iterator itEnd = reg.end();
+			int maxa = std::numeric_limits<int>::min();
+			for (; it != itEnd; ++it)
+			{
+				if (it->second > maxa)
+					maxa = it->second;
+			}
+
+			// solution output
+			std::cout << "8a: " << maxa
+				<< "      8b: " << maxb << std::endl;
+
+			break;
 		}
 
 		default: break;
