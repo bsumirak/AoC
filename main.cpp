@@ -16,6 +16,8 @@
 #include <utility>
 #include <iomanip>
 #include <queue>
+#include <cmath>
+#include <list>
 
 
 // function template for every day
