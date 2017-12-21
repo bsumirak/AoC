@@ -42,12 +42,13 @@ void executeDay<21>(const std::string& fn)
 				turnedIn[3] = in[1];
 
 				flippedIn[0] = in[1];
-				flippedIn[0] = in[1];
+				flippedIn[1] = in[0];
 				flippedIn[2] = in[3];
 				flippedIn[3] = in[2];
 
 				convRules[turnedIn] = out;
 				convRules[flippedIn] = out;
+
 				in = turnedIn;
 			}
 			else
@@ -77,8 +78,9 @@ void executeDay<21>(const std::string& fn)
 		}
 	}
 
+	size_t cnt5 = 0;
 	std::string pic = ".#...####";
-	for (size_t i = 0; i < 5; ++i)
+	for (size_t i = 0; i < 18; ++i)
 	{
 		std::string newPic;
 		size_t blockSz = pic.size() % 4 == 0 ? 2 : 3;
@@ -97,10 +99,9 @@ void executeDay<21>(const std::string& fn)
 						block[k*blockSz+l] = pic[(blockSz*i+k)*sideL + (blockSz*j+l)];
 
 				// transform
-				//std::cout << block << std::endl;
 				std::map<std::string, std::string>::const_iterator it = convRules.find(block);
-				if (it == convRules.end())
-					std::cout << block << "  " << block.size() << "  " << blockSz << std::endl;
+//				if (it == convRules.end())
+//					std::cout << block << "  " << block.size() << "  " << blockSz << std::endl;
 
 				std::string convBlock = it->second;
 
@@ -112,7 +113,16 @@ void executeDay<21>(const std::string& fn)
 		}
 
 		pic = newPic;
-std::cout << pic << std::endl;
+
+		if (i == 4)
+		{
+			size_t sz = pic.size();
+			for (size_t i = 0; i < sz; ++i)
+			{
+				if (pic[i] == '#')
+					++cnt5;
+			}
+		}
 	}
 /*
 	std::map<std::string, std::string>::const_iterator it = convRules.begin();
@@ -123,14 +133,14 @@ std::cout << pic << std::endl;
 	}
 */
 	// count #
-	size_t cnt = 0;
+	size_t cnt18 = 0;
 	size_t sz = pic.size();
 	for (size_t i = 0; i < sz; ++i)
 	{
 		if (pic[i] == '#')
-			++cnt;
+			++cnt18;
 	}
 
-	writeSolution(cnt, (int) 0);
+	writeSolution(cnt5, cnt18);
 }
 
