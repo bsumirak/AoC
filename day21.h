@@ -27,14 +27,12 @@ void executeDay<21>(const std::string& fn)
 		iss >> dummy;
 		iss >> out;
 
-		convRules[in] = out;
-
 		size_t l = in.size() == 4 ? 2 : 3;
 
 		// turn around
 		std::string turnedIn = in;
 		std::string flippedIn = in;
-		for (size_t i = 0; i < 3; ++i)
+		for (size_t i = 0; i < 4; ++i)
 		{
 			if (l == 2)
 			{
@@ -84,7 +82,6 @@ void executeDay<21>(const std::string& fn)
 	{
 		std::string newPic;
 		size_t blockSz = pic.size() % 4 == 0 ? 2 : 3;
-
 		size_t sideL = (size_t) sqrt(pic.size());
 		size_t newSideL = sideL / blockSz * (blockSz+1);
 		newPic.resize(pic.size() / (blockSz*blockSz) * (blockSz+1)*(blockSz+1));
@@ -100,21 +97,31 @@ void executeDay<21>(const std::string& fn)
 						block[k*blockSz+l] = pic[(blockSz*i+k)*sideL + (blockSz*j+l)];
 
 				// transform
-				block = convRules[block];
+				//std::cout << block << std::endl;
+				std::map<std::string, std::string>::const_iterator it = convRules.find(block);
+				if (it == convRules.end())
+					std::cout << block << "  " << block.size() << "  " << blockSz << std::endl;
+
+				std::string convBlock = it->second;
 
 				// insert into new pic
 				for (size_t k = 0; k < blockSz+1; ++k)
 					for (size_t l = 0; l < blockSz+1; ++l)
-						newPic[((blockSz+1)*i+k)*newSideL + ((blockSz+1)*j+l)];
-
-				pic = newPic;
+						newPic[((blockSz+1)*i+k)*newSideL + ((blockSz+1)*j+l)] = convBlock[k*(blockSz+1)+l];
 			}
 		}
+
+		pic = newPic;
+std::cout << pic << std::endl;
 	}
-
+/*
 	std::map<std::string, std::string>::const_iterator it = convRules.begin();
-	std::map<std::string, std::string>::const_iterator it = convRules.end();
-
+	std::map<std::string, std::string>::const_iterator itEnd = convRules.end();
+	for (; it != itEnd; ++it)
+	{
+		std::cout << it->first << " " << it->second << std::endl;
+	}
+*/
 	// count #
 	size_t cnt = 0;
 	size_t sz = pic.size();
