@@ -1,9 +1,10 @@
 /*
  * main.cpp
  *
- *  Created on: 01.12.2017
+ *  Created on: 2018-11-30
  *      Author: mbreit
  */
+
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -23,7 +24,7 @@
 // function template for every day
 // to be specialized by every day
 template <int i>
-void executeDay(const std::string& fn);
+void executeDay(const std::string& fn) {};
 
 // forward declaration
 template <typename A, typename B>
@@ -31,6 +32,7 @@ void writeSolution(A a, B b);
 
 
 #include "day01.h"
+/*
 #include "day02.h"
 #include "day03.h"
 #include "day04.h"
@@ -55,8 +57,7 @@ void writeSolution(A a, B b);
 #include "day23.h"
 #include "day24.h"
 #include "day25.h"
-
-
+*/
 
 template <typename A, typename B>
 void writeSolution(A a, B b)
