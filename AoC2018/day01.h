@@ -10,41 +10,41 @@ template <>
 void executeDay<1>(const std::string& fn)
 {
 	std::ifstream infile(fn.c_str());
-	std::string sSeq;
-	char c;
+	std::vector<int> list;
+	int i;
 
 	// part a
 	int suma = 0;
-	char last = '\0';
-	while (infile.get(c))
+	while (infile >> i)
 	{
-		if (c == last)
-			suma += c - '0';
-
-		last = c;
-
-		// save to string (easier for part b)
-		sSeq += c;
+		suma += i;
+		list.push_back(i);
 	}
-	infile.close();
-	size_t n = sSeq.size();
-
-	// do not forget wrapping
-	if (sSeq[n-1] == sSeq[0])
-		suma += sSeq[n-1] - '0';
-
-	const char* seq = sSeq.c_str();
 
 	// part b
-	int sumb = 0;
-	int p = n / 2;
-	for (size_t i = 0; i < n; ++i)
+	int b = 0;
+	size_t l = list.size();
+	std::vector<int> vList(1,0);
+	while (true)
 	{
-		if (seq[i] == seq[(i+p) % n])
-			sumb += seq[i] - '0';
+		for (size_t k = 0; k < l; ++k)
+		{
+			int newVal = vList.back() + list[k];
+			const size_t vListSz = vList.size();
+			for (size_t j = 0; j < vListSz; ++j)
+			{
+				if (vList[j] == newVal)
+				{
+					b = newVal;
+					goto result;
+				}
+			}
+			vList.push_back(newVal);
+		}
 	}
 
-	writeSolution(suma, sumb);
+result:
+	writeSolution(suma, b);
 }
 
 

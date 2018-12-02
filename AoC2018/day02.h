@@ -1,7 +1,7 @@
 /*
  * day02.h
  *
- *  Created on: 02.12.2017
+ *  Created on: 2018-12-02
  *      Author: mbreit
  */
 
@@ -10,46 +10,77 @@ template <>
 void executeDay<2>(const std::string& fn)
 {
 	std::ifstream infile(fn.c_str());
-	std::string line;
+	std::vector<std::string> vID;
+	int n2 = 0;
+	int n3 = 0;
 	int suma = 0;
-	int sumb = 0;
-	while (std::getline(infile, line))
+	std::string solb;
+	std::string id;
+
+	// part a
+	while (infile >> id)
 	{
-		std::istringstream iss(line);
-		int n = 0;
-		int tmp;
-		int min = std::numeric_limits<int>::max();
-		int max = std::numeric_limits<int>::min();
-		while (iss >> tmp)
+		vID.push_back(id);
+		const size_t len = id.size();
+		std::map<char, int> counter;
+		for (size_t i = 0; i < len; ++i)
 		{
-			++n;
+			++counter[id[i]];
+		}
 
-			// part a
-			if (tmp > max)
-				max = tmp;
-			if (tmp < min)
-				min = tmp;
+		std::map<char, int>::const_iterator it = counter.begin();
+		std::map<char, int>::const_iterator itEnd = counter.end();
+		bool hasDouble = false;
+		bool hasTriple = false;
+		for (; it != itEnd; ++it)
+		{
+			if (it->second == 2)
+				hasDouble = true;
+			else if (it->second== 3)
+				hasTriple = true;
+		}
+		if (hasDouble)
+			++n2;
+		if (hasTriple)
+			++n3;
 
-			// part b
-			std::istringstream iss2(line);
-			int m = 0;
-			int tmp2;
-			while (iss2 >> tmp2)
+	}
+	suma = n2*n3;
+
+
+	// part b
+	std::sort(vID.begin(), vID.end());
+	const size_t sz = vID.size() - 1;
+	for (size_t i = 0; i < sz; ++i)
+	{
+		// compare with next
+		std::string& s1 = vID[i];
+		std::string& s2 = vID[i+1];
+
+		const size_t len = s1.size();
+		int differIn = -1;
+		for (size_t j = 0; j < len; ++j)
+		{
+			if (s1[j] != s2[j])
 			{
-				++m;
-				if (m == n) continue;
-
-				if (tmp%tmp2 == 0)
+				if (differIn == -1)
+					differIn = j;
+				else
 				{
-					sumb += tmp / tmp2;
-					//std::cout << "adding " << tmp << " / " << tmp2 << std::endl;
+					differIn = -1;
+					break;
 				}
 			}
 		}
-		suma += max - min;
+		if (differIn != -1)
+		{
+			solb = s1.erase(differIn, 1);
+			break;
+		}
 	}
 
-	writeSolution(suma, sumb);
+
+	writeSolution(suma, solb);
 }
 
 
