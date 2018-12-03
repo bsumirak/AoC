@@ -9,46 +9,53 @@
 template <>
 void executeDay<3>(const std::string& fn)
 {
-	// part a - solved using only calculator
-	int sola = 326;
+	// read input
+	std::ifstream infile(fn.c_str());
+	std::size_t claims[4*1373];
+	std::size_t i = 0;
+	while (infile >> claims[i])
+		++i;
+
+	// part a, b
+	std::vector<std::size_t> inchClaims(1000000,0);
+	for (std::size_t i = 0; i < 1373; ++i)
+		for (std::size_t j = 0; j < claims[4*i+2]; ++j)
+			for (std::size_t k = 0; k < claims[4*i+3]; ++k)
+				++inchClaims[(claims[4*i+1]+k)*1000 + claims[4*i]+j];
+
+
+	std::size_t suma = 0;
+	for (std::size_t i = 0; i < 1000000; ++i)
+		if (inchClaims[i] >= 2)
+			++suma;
+
 
 	// part b
-	int x = 0;
-	int y = 0;
-	int n = 1;
-	int resolution = 11; // looking at the solution, 11 would suffice
-	int hr = (resolution-1)/2;
-	std::vector<std::vector<int> > mem(resolution);
-	for (size_t i = 0; i < resolution; ++i)
-		mem[i].resize(resolution,0);
-	mem[hr][hr] = 1;
-	int solb = -1;
-
-	while (true)
+	std::size_t nonOverlappingClaim = (std::size_t)-1;
+	for (std::size_t i = 0; i < 1373; ++i)
 	{
-		if (y <= x && y <= -x) // new ring and lower side
-			x += 1;
-		else if (y < x && y >= -x) // right side
-			y += 1;
-		else if (y >= x && y > -x) // upper side
-			x -= 1;
-		else
-			y -= 1;
-
-		mem[x+hr][y+hr] += mem[x+hr-1][y+hr+1] + mem[x+hr][y+hr+1] + mem[x+hr+1][y+hr+1]
-						 + mem[x+hr-1][y+hr] + mem[x+hr][y+hr] + mem[x+hr+1][y+hr]
-						 + mem[x+hr-1][y+hr-1] + mem[x+hr][y+hr-1] + mem[x+hr+1][y+hr-1];
-
-		if (mem[x+hr][y+hr] > 361527)
+		bool nonOverlapping = true;
+		for (std::size_t j = 0; j < claims[4*i+2]; ++j)
 		{
-			solb = mem[x+hr][y+hr];
-			break;
+			for (std::size_t k = 0; k < claims[4*i+3]; ++k)
+			{
+				if (inchClaims[(claims[4*i+1]+k)*1000 + claims[4*i]+j] > 1)
+				{
+					nonOverlapping = false;
+					j = claims[4*i+2];
+					break;
+				}
+			}
 		}
-		if (x == hr-1 && y == -(hr-1))
-			break; // for mem safety;
+		if (nonOverlapping)
+		{
+			nonOverlappingClaim = i;
+			std::cout << i << std::endl;
+		}
 	}
 
-	writeSolution(sola, solb);
+
+	writeSolution(suma, nonOverlappingClaim+1);
 }
 
 
