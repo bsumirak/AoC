@@ -6,6 +6,25 @@
  */
 
 
+struct GuardEvent
+{
+	bool operator<(const GuardEvent& gd2) const
+	{
+		if (month < gd2.month) return true;
+		if (month > gd2.month) return false;
+		if (day < gd2.day) return true;
+		if (day > gd2.day) return false;
+		if (hour < gd2.hour) return true;
+		if (hour > gd2.hour) return false;
+		if (minute < gd2.minute) return true;
+		if (minute > gd2.minute) return false;
+		return false;
+	}
+
+	int month, day, hour, minute;
+	int event;
+};
+
 template <>
 void executeDay<4>(const std::string& fn)
 {
@@ -13,103 +32,138 @@ void executeDay<4>(const std::string& fn)
 	std::string line;
 	int suma = 0;
 	int sumb = 0;
+	std::vector<GuardEvent> guardEvents(1028);
+	std::size_t cnt = 0;
 	while (std::getline(infile, line))
 	{
 		std::istringstream iss(line);
 
-		// part a
-		std::set<std::string> passphrase;
-		std::string tmp;
-		bool valid = true;
-		while (iss >> tmp)
-		{
-			std::pair<std::set<std::string>::iterator, bool> res = passphrase.insert(tmp);
-			if (!res.second)
-			{
-				valid = false;
-				break;
-			}
-		}
+		iss >> guardEvents[cnt].month;
+		iss >> guardEvents[cnt].day;
+		iss >> guardEvents[cnt].hour;
+		iss >> guardEvents[cnt].minute;
+		iss >> guardEvents[cnt].event;
 
-		if (valid) ++suma;
-
-		// part b
-		std::vector<std::string> pp;
-		valid = true;
-		std::istringstream issb(line);
-		while (issb >> tmp)
-		{
-			// compare with each already processed word in phrase
-			size_t sz = pp.size();
-			for (size_t i = 0; i < sz; ++i)
-			{
-				const std::string& cur = pp[i];
-				size_t nChar = cur.size();
-
-				if (tmp.size() != nChar)
-					continue;
-
-				// save all char frequencies in map for current and new string
-				std::map<char, size_t> mTmp, mCur;
-				for (size_t c = 0; c < nChar; ++c)
-				{
-					std::map<char, size_t>::iterator itTmp, itCur;
-
-					if ((itTmp = mTmp.find(tmp[c])) != mTmp.end())
-						++(itTmp->second);
-					else
-						mTmp[tmp[c]] = 1;
-
-					if ((itCur = mCur.find(cur[c])) != mCur.end())
-						++(itCur->second);
-					else
-						mCur[cur[c]] = 1;
-				}
-
-				// compare frequencies
-				bool unequal = false;
-				std::map<char, size_t>::const_iterator itTmp = mTmp.begin();
-				std::map<char, size_t>::const_iterator itTmpEnd = mTmp.end();
-				for (; itTmp != itTmpEnd; ++itTmp)
-				{
-					char c = itTmp->first;
-					size_t cnt = itTmp->second;
-					std::map<char, size_t>::iterator itCur;
-					if ((itCur = mCur.find(c)) != mCur.end())
-					{
-						if (itCur->second != cnt)
-						{
-							unequal = true;
-							break;
-						}
-					}
-					else
-					{
-						unequal = true;
-						break;
-					}
-				}
-
-
-				if (!unequal)
-				{
-					valid = false;
-					break;
-				}
-			}
-
-			// if no double entry, add word to phrase; otherwise phrase invalid
-			if (valid)
-				pp.push_back(tmp);
-			else
-				break;
-		}
-
-		if (valid)
-			++sumb;
+		++cnt;
 	}
 
-	writeSolution(suma, sumb);
+	std::sort(guardEvents.begin(), guardEvents.end());
+
+	int curGuard = -1;
+	std::map<int, std::vector<std::pair<int, int> > > guardSleeping;
+	std::size_t i = 0;
+	while (i < 1028)
+	{
+		// get current guard
+		std::vector<std::pair<int, int> >& sleepList = guardSleeping[guardEvents[i].event];
+		++i;
+
+		// sleeping periods
+		bool asleep = false;
+		while (guardEvents[i].event < 0)
+		{
+			if (!asleep)
+			{
+				sleepList.push_back(std::make_pair(guardEvents[i].minute, 60));
+				asleep = true;
+			}
+			else
+			{
+				sleepList.back().second = guardEvents[i].minute;
+				asleep = false;
+			}
+
+			++i;
+		}
+	}
+
+	// part a
+	std::map<int, int> guardSleepingMinutes;
+	std::map<int, std::vector<std::pair<int, int> > >::const_iterator it = guardSleeping.begin();
+	std::map<int, std::vector<std::pair<int, int> > >::const_iterator itEnd = guardSleeping.end();
+	for (; it != itEnd; ++it)
+	{
+		int guard = it->first;
+		guardSleepingMinutes[guard];  // make sure this exists
+		const std::size_t nSleeps = it->second.size();
+		for (size_t i = 0; i < nSleeps; ++i)
+			guardSleepingMinutes[guard] += it->second[i].second - it->second[i].first;
+	}
+
+	std::map<int, int>::const_iterator it1 = guardSleepingMinutes.begin();
+	std::map<int, int>::const_iterator it1End = guardSleepingMinutes.end();
+	int maxGuard = it1->first;
+	int maxMinutes = it1->second;
+	for (++it1; it1 != it1End; ++it1)
+	{
+		if (it1->second > maxMinutes)
+		{
+			maxMinutes = it1->second;
+			maxGuard = it1->first;
+		}
+	}
+
+	it = guardSleeping.find(maxGuard);
+	int sleep[60];
+	for (size_t i = 0; i < 60; ++i)
+		sleep[i] = 0;
+	const std::size_t nSleeps = it->second.size();
+	for (size_t i = 0; i < nSleeps; ++i)
+		for (size_t j = it->second[i].first; j < it->second[i].second; ++j)
+			++sleep[j];
+	int maxMinute = 0;
+	int maxSleeps = sleep[0];
+	for (size_t i = 1; i < 60; ++i)
+	{
+		if (sleep[i] > maxSleeps)
+		{
+			maxMinute = i;
+			maxSleeps = sleep[i];
+		}
+	}
+
+	int sola = maxGuard * maxMinute;
+
+
+	// part b
+	int globMaxGuard = 0;
+	int globMaxMinute = 0;
+	int globMaxSleep = 0;
+	for (it1 = guardSleepingMinutes.begin(); it1 != it1End; ++it1)
+	{
+		it = guardSleeping.find(it1->first);
+
+		int sleep[60];
+		for (size_t i = 0; i < 60; ++i)
+			sleep[i] = 0;
+		const std::size_t nSleeps = it->second.size();
+		for (size_t i = 0; i < nSleeps; ++i)
+			for (size_t j = it->second[i].first; j < it->second[i].second; ++j)
+				++sleep[j];
+		int maxMinute = 0;
+		int maxSleeps = sleep[0];
+		for (size_t i = 1; i < 60; ++i)
+		{
+			if (sleep[i] > maxSleeps)
+			{
+				maxMinute = i;
+				maxSleeps = sleep[i];
+			}
+		}
+
+		if (maxSleeps > globMaxSleep)
+		{
+			globMaxSleep = maxSleeps;
+			globMaxMinute = maxMinute;
+			globMaxGuard = it1->first;
+		}
+	}
+
+
+	int solb = globMaxGuard * globMaxMinute;
+
+
+	writeSolution(sola, solb);
 }
 
 
