@@ -1,7 +1,7 @@
 /*
  * day07.h
  *
- *  Created on: 07.12.2017
+ *  Created on: 2018-12-07
  *      Author: mbreit
  */
 
@@ -83,7 +83,6 @@ void executeDay<7>(const std::string& fn)
 			if (finishes[i] > time && finishes[i] < minFinish)
 				minFinish = finishes[i];
 
-		std::cout << minFinish << std::endl;
 		time = minFinish;
 
 		// all finishers' jobs are done
@@ -118,7 +117,6 @@ void executeDay<7>(const std::string& fn)
 		{
 			if (curJob[nextWorker] != '0')
 			{
-				std::cout << "worker " << nextWorker << " is occupied" << std::endl;
 				++nextWorker;
 				continue;
 			}
@@ -128,19 +126,12 @@ void executeDay<7>(const std::string& fn)
 
 			// no more jobs
 			if (it == itEnd)
-			{
-				std::cout << "worker " << nextWorker << " is idle from time "
-					<< time << " onwards" << std::endl;
 				break;
-			}
 
 			foundNewJob = true;
 			curJob[nextWorker] = it->first;
 			finishes[nextWorker] = time + 60 + it->first - 'A' + 1;
 			used[it->first] = true;
-
-			std::cout << "worker " << nextWorker << " takes job "
-				<< it->first << " at time " << time << std::endl;
 
 			++it;
 			++nextWorker;

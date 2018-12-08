@@ -1,7 +1,7 @@
 /*
  * day08.h
  *
- *  Created on: 08.12.2017
+ *  Created on: 2018-12-08
  *      Author: mbreit
  */
 
@@ -15,7 +15,7 @@ struct Node
 			delete children[i];
 	}
 
-	int nChildren;
+	int nChildrenLeftToProcess;
 	int nData;
 	std::vector<Node*> children;
 	int value;
@@ -32,14 +32,14 @@ void executeDay<8>(const std::string& fn)
 	int dataSum = 0;
 	std::stack<Node*> stack;
 	Node* node = new Node();
-	infile >> node->nChildren;
+	infile >> node->nChildrenLeftToProcess;
 	infile >> node->nData;
 	node->value = 0;
 	stack.push(node);
 	while (!stack.empty())
 	{
 		Node* curNode = stack.top();
-		if (curNode->nChildren == 0)
+		if (curNode->nChildrenLeftToProcess == 0)
 		{
 			int tmp;
 			for (int i = 0; i < curNode->nData; ++i)
@@ -61,9 +61,9 @@ void executeDay<8>(const std::string& fn)
 		}
 		else
 		{
-			--curNode->nChildren;
+			--curNode->nChildrenLeftToProcess;
 			Node* newNode = new Node();
-			infile >> newNode->nChildren;
+			infile >> newNode->nChildrenLeftToProcess;
 			infile >> newNode->nData;
 			newNode->value = 0;
 			stack.push(newNode);
