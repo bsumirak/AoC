@@ -6,6 +6,22 @@
  */
 
 
+struct Node
+{
+	~Node()
+	{
+		size_t sz = children.size();
+		for (size_t i = 0; i < sz; ++i)
+			delete children[i];
+	}
+
+	int nChildren;
+	int nData;
+	std::vector<Node*> children;
+	int value;
+};
+
+
 template <>
 void executeDay<8>(const std::string& fn)
 {
@@ -13,69 +29,54 @@ void executeDay<8>(const std::string& fn)
 	std::string line;
 
 	// part a
-	std::map<std::string, int> reg;
-	int maxb = std::numeric_limits<int>::min();
-	while (std::getline(infile, line))
+	int dataSum = 0;
+	std::stack<Node*> stack;
+	Node* node = new Node();
+	infile >> node->nChildren;
+	infile >> node->nData;
+	node->value = 0;
+	stack.push(node);
+	while (!stack.empty())
 	{
-		std::istringstream iss(line);
-		std::string affReg;
-		iss >> affReg;
-
-		// create reg if not present already
-		if (reg.find(affReg) == reg.end())
-			reg[affReg] = 0;
-
-		std::string op;
-		iss >> op;
-
-		std::string tmp;
-		iss >> tmp;
-		int opVal = atoi(tmp.c_str());
-		if (op == "dec")
-			opVal *= -1;
-
-		iss >> tmp; // ignore "if"
-
-		std::string condReg;
-		iss >> condReg;
-
-		if (reg.find(condReg) == reg.end())
-			reg[condReg] = 0;
-
-		std::string comp;
-		iss >> comp;
-
-		iss >> tmp;
-		int compVal = atoi(tmp.c_str());
-
-		// perform action
-		bool doAdd = false;
-		if ((comp == "<" && reg[condReg] < compVal)
-			|| (comp == ">" && reg[condReg] > compVal)
-			|| (comp == "<=" && reg[condReg] <= compVal)
-			|| (comp == ">=" && reg[condReg] >= compVal)
-			|| (comp == "==" && reg[condReg] == compVal)
-			|| (comp == "!=" && reg[condReg] != compVal)
-		)
+		Node* curNode = stack.top();
+		if (curNode->nChildren == 0)
 		{
-			reg[affReg] += opVal;
-			if (reg[affReg] > maxb)
-				maxb = reg[affReg];
+			int tmp;
+			for (int i = 0; i < curNode->nData; ++i)
+			{
+				infile >> tmp;
+
+				if (curNode->children.size())
+				{
+					if (tmp-1 < curNode->children.size())
+						curNode->value += curNode->children[tmp-1]->value;
+				}
+				else
+					curNode->value += tmp;
+
+				dataSum += tmp;
+			}
+
+			stack.pop();
+		}
+		else
+		{
+			--curNode->nChildren;
+			Node* newNode = new Node();
+			infile >> newNode->nChildren;
+			infile >> newNode->nData;
+			newNode->value = 0;
+			stack.push(newNode);
+			curNode->children.push_back(newNode);
 		}
 	}
 
-	// search max after all instructions
-	std::map<std::string, int>::iterator it = reg.begin();
-	std::map<std::string, int>::iterator itEnd = reg.end();
-	int maxa = std::numeric_limits<int>::min();
-	for (; it != itEnd; ++it)
-	{
-		if (it->second > maxa)
-			maxa = it->second;
-	}
+	int solb = node->value;
+	delete node;
+
 
 	// solution output
-	writeSolution(maxa, maxb);
+	writeSolution(dataSum, solb);
 }
 
 
