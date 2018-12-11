@@ -1,7 +1,7 @@
 /*
  * day11.h
  *
- *  Created on: 11.12.2017
+ *  Created on: 2018-12-11
  *      Author: mbreit
  */
 
@@ -9,54 +9,85 @@
 template <>
 void executeDay<11>(const std::string& fn)
 {
-	std::ifstream infile(fn.c_str());
-	std::string line;
-	std::getline(infile, line);
-	std::istringstream iss(line);
+	// input
+	int serial = 1133;
 
-	// read file
-	std::vector<int> vLength(3,0);
-	std::string token;
-
-	int solb = 0;
-	while (std::getline(iss, token, ','))
+	// write grid
+	int grid[90000];
+	for (int i = 0; i < 300; ++i)
 	{
-		if (token == "n")
-			++vLength[0];
-		else if (token == "s")
-			--vLength[0];
-		else if (token == "ne")
-			++vLength[1];
-		else if (token == "sw")
-			--vLength[1];
-		else if (token == "se")
-			++vLength[2];
-		else if (token == "nw")
-			--vLength[2];
-		else
-			std::cout << "Unknown direction." << std::endl;
-
-		int x = vLength[1] + vLength[2];
-		int y = 2*vLength[0] + vLength[1] - vLength[2];
-
-		// x dir first
-		int dist = abs(x);
-		if (abs(y) > abs(x))
-			dist += (abs(y) - abs(x)) / 2;
-
-		solb = std::max(solb, dist);
+		for (int j = 0; j < 300; ++j)
+		{
+			int x = i + 10;
+			int level = x*j;
+			level += serial;
+			level *= x;
+			level /= 100;
+			level = level % 10;
+			level -= 5;
+			grid[300*i+j] = level;
+		}
 	}
 
+
 	// part a
-	int x = vLength[1] + vLength[2];
-	int y = 2*vLength[0] + vLength[1] - vLength[2];
+	int maxSum = 0;
+	int maxIDx = 0;
+	int maxIDy = 0;
+	for (int i = 0; i < 298; ++i)
+	{
+		for (int j = 0; j < 298; ++j)
+		{
+			int sum = 0;
+			for (int k = 0; k < 3; ++k)
+				for (int l = 0; l < 3; ++l)
+					sum += grid[300*(i+k)+j+l];
 
-	// x dir first
-	int sola = abs(x);
-	if (abs(y) > abs(x))
-		sola += (abs(y) - abs(x)) / 2;
+			if (sum > maxSum)
+			{
+				maxSum = sum;
+				maxIDx = i;
+				maxIDy = j;
+			}
+		}
+	}
 
-	writeSolution(sola, solb);
+	std::ostringstream ossa;
+	ossa << maxIDx << "," << maxIDy;
+
+
+	// part b
+	maxSum = 0;
+	maxIDx = 0;
+	maxIDy = 0;
+	int maxS = 0;
+	for (int s = 1; s <= 300; ++s)
+	{
+		for (int i = 0; i < 301-s; ++i)
+		{
+			for (int j = 0; j < 301-s; ++j)
+			{
+				int sum = 0;
+				for (int k = 0; k < s; ++k)
+					for (int l = 0; l < s; ++l)
+						sum += grid[300*(i+k)+(j+l)];
+
+				if (sum > maxSum)
+				{
+					maxSum = sum;
+					maxIDx = i;
+					maxIDy = j;
+					maxS = s;
+				}
+			}
+		}
+	}
+
+	std::ostringstream ossb;
+	ossb << maxIDx << "," << maxIDy << "," << maxS;
+
+
+	writeSolution(ossa.str(), ossb.str());
 }
 
 
