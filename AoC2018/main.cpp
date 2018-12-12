@@ -43,11 +43,11 @@ void writeSolution(A a, B b);
 #include "day08.h"
 #include "day09.h"
 #include "day10.h"
-*/
 #include "day11.h"
+*/
 #include "day12.h"
-/*#include "day13.h"
-#include "day14.h"
+#include "day13.h"
+/*#include "day14.h"
 #include "day15.h"
 #include "day16.h"
 #include "day17.h"
