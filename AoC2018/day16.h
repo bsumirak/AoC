@@ -1,184 +1,280 @@
 /*
  * day16.h
  *
- *  Created on: 16.12.2017
+ *  Created on: 2018-12-25
  *      Author: mbreit
  */
 
 
-struct move
+enum InstructionType
 {
-	char type;
-	char x1;
-	char x2;
+	IT_ADDR = 0,
+	IT_ADDI,
+	IT_MULR,
+	IT_MULI,
+	IT_BANR,
+	IT_BANI,
+	IT_BORR,
+	IT_BORI,
+	IT_SETR,
+	IT_SETI,
+	IT_GTIR,
+	IT_GTRI,
+	IT_GTRR,
+	IT_EQIR,
+	IT_EQRI,
+	IT_EQRR,
+	IT_INVL
 };
+
+
+std::vector<uint>& instructionResult
+(
+	const std::vector<uint>& instr,
+	const std::vector<uint>& regBefore,
+	std::vector<uint>& regAfter
+)
+{
+	regAfter = regBefore;
+
+	InstructionType it = (InstructionType) instr[0];
+	switch (it)
+	{
+		case IT_ADDR:
+			regAfter[instr[3]] = regAfter[instr[1]] + regAfter[instr[2]];
+			return regAfter;
+		case IT_ADDI:
+			regAfter[instr[3]] = regAfter[instr[1]] + instr[2];
+			return regAfter;
+		case IT_MULR:
+			regAfter[instr[3]] = regAfter[instr[1]] * regAfter[instr[2]];
+			return regAfter;
+		case IT_MULI:
+			regAfter[instr[3]] = regAfter[instr[1]] * instr[2];
+			return regAfter;
+		case IT_BANR:
+			regAfter[instr[3]] = regAfter[instr[1]] & regAfter[instr[2]];
+			return regAfter;
+		case IT_BANI:
+			regAfter[instr[3]] = regAfter[instr[1]] & instr[2];
+			return regAfter;
+		case IT_BORR:
+			regAfter[instr[3]] = regAfter[instr[1]] | regAfter[instr[2]];
+			return regAfter;
+		case IT_BORI:
+			regAfter[instr[3]] = regAfter[instr[1]] | instr[2];
+			return regAfter;
+		case IT_SETR:
+			regAfter[instr[3]] = regAfter[instr[1]];
+			return regAfter;
+		case IT_SETI:
+			regAfter[instr[3]] = instr[1];
+			return regAfter;
+		case IT_GTIR:
+			regAfter[instr[3]] = instr[1] > regAfter[instr[2]] ? 1 : 0;
+			return regAfter;
+		case IT_GTRI:
+			regAfter[instr[3]] = regAfter[instr[1]] > instr[2] ? 1 : 0;
+			return regAfter;
+		case IT_GTRR:
+			regAfter[instr[3]] = regAfter[instr[1]] > regAfter[instr[2]] ? 1 : 0;
+			return regAfter;
+		case IT_EQIR:
+			regAfter[instr[3]] = instr[1] == regAfter[instr[2]] ? 1 : 0;
+			return regAfter;
+		case IT_EQRI:
+			regAfter[instr[3]] = regAfter[instr[1]] == instr[2] ? 1 : 0;
+			return regAfter;
+		case IT_EQRR:
+			regAfter[instr[3]] = regAfter[instr[1]] == regAfter[instr[2]] ? 1 : 0;
+			return regAfter;
+		default:
+			std::cout << "Invalid opcode!" << std::endl;
+			exit(1);
+	}
+
+	return regAfter;
+}
+
 
 template <>
 void executeDay<16>(const std::string& fn)
 {
-	std::ifstream infile(fn.c_str());
-	std::vector<char> order(17);
-	for (int i = 0; i < 16; ++i)
-		order[i] = 'a' + (char) i;
+	// read input (part 1)
+	std::ifstream infile1((fn+'1').c_str());
 
-	std::vector<move> vMoves;
+	std::vector<uint> tmp(4);
+	std::vector<std::vector<uint> > vBefore;
+	std::vector<std::vector<uint> > vAfter;
+	std::vector<std::vector<uint> > vInstr;
 
-	char c;
-	while (infile.get(c))
+	while (infile1 >> tmp[0])
 	{
-		switch (c)
-		{
-			case 's':
-			{
-				int cnt = -1;
-				size_t nS = 0;
-				while (infile.get(c) && c != ',')
-					nS += (c-'0') * std::pow(10, 1 - ++cnt);
-				if (cnt == 0)
-					nS /= 10;
+		infile1 >> tmp[1];
+		infile1 >> tmp[2];
+		infile1 >> tmp[3];
+		vBefore.push_back(tmp);
 
-				vMoves.resize(vMoves.size()+1);
-				vMoves.back().type = 's';
-				vMoves.back().x1 = (char) nS;
+		infile1 >> tmp[0];
+		infile1 >> tmp[1];
+		infile1 >> tmp[2];
+		infile1 >> tmp[3];
+		vInstr.push_back(tmp);
 
-				break;
-			}
-			case 'x':
-			{
-				int cnt = -1;
-				size_t xa = 0;
-				while (infile.get(c) && c != '/')
-					xa += (c-'0') * std::pow(10, 1 - ++cnt);
-				if (cnt == 0)
-					xa /= 10;
-
-				cnt = -1;
-				size_t xb = 0;
-				while (infile.get(c) && c != ',')
-					xb += (c-'0') * std::pow(10, 1 - ++cnt);
-				if (cnt == 0)
-					xb /= 10;
-
-				vMoves.resize(vMoves.size()+1);
-				vMoves.back().type = 'x';
-				vMoves.back().x1 = (char) xa;
-				vMoves.back().x2 = (char) xb;
-
-				break;
-			}
-			case 'p':
-			{
-				int cnt = 0;
-				char pa, pb;
-				infile.get(pa);
-				infile.get(pb); // slash
-				infile.get(pb);
-
-				vMoves.resize(vMoves.size()+1);
-				vMoves.back().type = 'p';
-				vMoves.back().x1 = (char) pa;
-				vMoves.back().x2 = (char) pb;
-
-				infile.get(pb); // comma
-				break;
-			}
-			default: throw;
-		}
+		infile1 >> tmp[0];
+		infile1 >> tmp[1];
+		infile1 >> tmp[2];
+		infile1 >> tmp[3];
+		vAfter.push_back(tmp);
 	}
 
-	std::vector<char> tmp(16);
-	std::vector<char> order1(16);
+	const size_t nInstr = vInstr.size();
 
-	std::vector<std::vector<char> > mem;
-	mem.push_back(order);
-	size_t cycleLength = 0;
-	size_t cycleOffset;
-
-	for (size_t k = 0; k < (size_t) 1000000000; ++k)
+	size_t cnt = 0;
+	std::vector<std::vector<InstructionType> > decrypt(16);
+	for (size_t i = 0; i < nInstr; ++i)
 	{
-		for (size_t i = 0; i < vMoves.size(); ++i)
+		const std::vector<uint>& before = vBefore[i];
+		const std::vector<uint>& after = vAfter[i];
+		std::vector<uint>& instr = vInstr[i];
+
+		std::vector<uint> tmp(4,0);
+		std::vector<InstructionType> vCand;
+		const uint origInstr = instr[0];
+		instr[0] = IT_ADDR;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_ADDR);
+		instr[0] = IT_ADDI;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_ADDI);
+		instr[0] = IT_MULR;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_MULR);
+		instr[0] = IT_MULI;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_MULI);
+		instr[0] = IT_BANR;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_BANR);
+		instr[0] = IT_BANI;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_BANI);
+		instr[0] = IT_BORR;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_BORR);
+		instr[0] = IT_BORI;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_BORI);
+		instr[0] = IT_SETR;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_SETR);
+		instr[0] = IT_SETI;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_SETI);
+		instr[0] = IT_GTIR;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_GTIR);
+		instr[0] = IT_GTRI;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_GTRI);
+		instr[0] = IT_GTRR;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_GTRR);
+		instr[0] = IT_EQIR;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_EQIR);
+		instr[0] = IT_EQRI;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_EQRI);
+		instr[0] = IT_EQRR;
+		if (instructionResult(instr, before, tmp) == after)
+			vCand.push_back(IT_EQRR);
+
+		const size_t vcSz = vCand.size();
+		if (decrypt[origInstr].size())
 		{
-			switch (vMoves[i].type)
+			std::vector<InstructionType>& decryptCands = decrypt[origInstr];
+			for (size_t i = 0; i < decryptCands.size();)
 			{
-				case 's':
-				{
-					const int nS = vMoves[i].x1;
-					for (int i = 0; i < nS; ++i)
-						tmp[i] = order[16-nS+i];
-					for (int i = 0; i < 16-nS; ++i)
-						tmp[nS+i] = order[i];
-
-					tmp.swap(order);
-
-					break;
-				}
-
-				case 'x':
-				{
-					std::swap(order[vMoves[i].x1], order[vMoves[i].x2]);
-					break;
-				}
-				case 'p':
-				{
-					const char& pa = vMoves[i].x1;
-					const char& pb = vMoves[i].x2;
-
-					size_t posa = 0;
-					while (order[posa] != pa)
-						++posa;
-					size_t posb = 0;
-					while (order[posb] != pb)
-						++posb;
-
-					std::swap(order[posa], order[posb]);
-
-					break;
-				}
-				default: throw;
+				InstructionType it = decryptCands[i];
+				size_t j = 0;
+				for (; j < vcSz; ++j)
+					if (vCand[j] == it)
+						break;
+				if (j == vcSz)
+					decryptCands.erase(decryptCands.begin() + i);
+				else
+					++i;
 			}
 		}
-
-		if (k == 0)
-			order1 = order;
-
-		// check for cycles
-		++cycleLength;
-		bool foundCycle = false;
-		for (size_t i = 0; i < cycleLength; ++i)
+		else
 		{
-			bool same = true;
+			for (size_t i = 0; i < vcSz; ++i)
+				decrypt[origInstr].push_back(vCand[i]);
+		}
+
+		if (vcSz >= 3)
+			++cnt;
+	}
+
+	// postprocess decrypt data
+	std::vector<InstructionType> opCode2Instr(16, IT_INVL);
+	bool foundOne = true;
+	while (foundOne)
+	{
+		foundOne = false;
+		for (size_t i = 0; i < 16; ++i)
+		{
+			if (decrypt[i].size() == 1)
+			{
+				foundOne = true;
+				opCode2Instr[i] = decrypt[i][0];
+			}
+
 			for (size_t j = 0; j < 16; ++j)
 			{
-				if (mem[i][j] != order[j])
+				for (size_t k = 0; k < decrypt[j].size();)
 				{
-					same = false;
-					break;
+					if (decrypt[j][k] == opCode2Instr[i])
+						decrypt[j].erase(decrypt[j].begin() + k);
+					else
+						++k;
 				}
 			}
-			if (same)
-			{
-				foundCycle = true;
-				cycleOffset = i;
-				cycleLength -= i;
-			}
 		}
-
-		if (foundCycle)
-			break;
-
-		mem.push_back(order);
 	}
 
-	// post-process for part a
-	order1.resize(17);
-	order1[16] = '\0';
+/*
+	for (size_t i = 0; i < 16; ++i)
+	{
+		std::cout << i << ":";
+		for (size_t j = 0; j < decrypt[i].size(); ++j)
+			std::cout << " " << decrypt[i][j];
+		std::cout << std::endl;
+	}
+*/
 
-	// post-process for part b
-	size_t pos = cycleOffset + ((size_t) 1000000000 - cycleOffset) % cycleLength;
-	mem[pos].resize(17);
-	mem[pos][16] = '\0';
+	// read input (part 2)
+	std::ifstream infile2((fn+'2').c_str());
+	std::vector<std::vector<uint> > program;
+	while (infile2 >> tmp[0])
+	{
+		infile2 >> tmp[1];
+		infile2 >> tmp[2];
+		infile2 >> tmp[3];
+		program.push_back(tmp);
+	}
 
-	writeSolution(&order1[0], &mem[pos][0]);
+	// execute program
+	std::vector<uint> reg(4, 0);
+	const size_t nProgInstr = program.size();
+	for (size_t i = 0; i < nProgInstr; ++i)
+	{
+		program[i][0] = opCode2Instr[program[i][0]];
+		instructionResult(program[i], reg, reg);
+	}
+
+	writeSolution(cnt, reg[0]);
 }
 
 
