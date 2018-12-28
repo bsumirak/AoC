@@ -1,132 +1,92 @@
 /*
  * day19.h
  *
- *  Created on: 19.12.2017
+ *  Created on: 2018-12-28
  *      Author: mbreit
  */
 
 
+// needs inclusion of day 16!
+
 template <>
 void executeDay<19>(const std::string& fn)
 {
+	// read input
 	std::ifstream infile(fn.c_str());
 
-	std::vector<std::string> path;
-	std::map<std::pair<size_t, size_t>, char> tokens;
+	std::vector<std::vector<uint> > vInstr;
 
-	// read labyrinth
 	std::string line;
-	while (std::getline(infile, line))
-		path.push_back(line);
+	infile >> line;
+	size_t ip;
+	infile >> ip;
 
-
-	// step through
-	std::string sola = "";
-	size_t nStep = 1;
-
-	// find entrance
-	size_t i = 0;
-	size_t j = 0;
-	for (; j < path[i].size(); ++j)
-		if (path[i][j] == '|')
-			break;
-
-	int comingFrom = 1;
-	while (true)
+	while (infile >> line)
 	{
-		while (path[i][j] != '+')
-		{
-			if (path[i][j] == ' ')
-			{
-				//std::cout << "Path ended in space." << std::endl;
-				--nStep;
-				goto exitLabyrinth;
-			}
-
-			if (path[i][j] != '|' && path[i][j] != '-')
-				sola += path[i][j];
-
-			switch (comingFrom)
-			{
-				case 1: ++i; break;
-				case 2: --j; break;
-				case 3: --i; break;
-				case 4: ++j;
-			}
-
-			++nStep;
-
-			if (i == (size_t)-1 || i >= path.size() || j == (size_t)-1 || j >= path[i].size())
-			{
-				//std::cout << "Path ended in boundary." << std::endl;
-				goto exitLabyrinth;
-			}
-		}
-
-		// we hit a '+' - find possible directions to continue
-		size_t it = i;
-		size_t jt = j;
-		if (comingFrom == 1 || comingFrom == 3)
-		{
-			while (jt < path[it].size() - 1 && path[i][++jt] == '|')
-				;
-			if (path[i][jt] != ' ' && path[i][jt] != '|')
-			{
-				nStep += jt-j;
-				j = jt;
-				comingFrom = 4;
-			}
-			else
-			{
-				jt = j;
-				while (jt != 0 && path[i][--jt] == '|')
-					;
-				if (path[i][jt] != ' ' && path[i][jt] != '|')
-				{
-					nStep += j-jt;
-					j = jt;
-					comingFrom = 2;
-				}
-				else
-				{
-					//std::cout << "Path ended in +, coming from " << comingFrom << "." << std::endl;
-					goto exitLabyrinth;
-				}
-			}
-		}
+		vInstr.resize(vInstr.size() + 1);
+		std::vector<uint>& instr = vInstr.back();
+		instr.resize(4);
+		if (line == "addr")
+			instr[0] = IT_ADDR;
+		else if (line == "addi")
+			instr[0] = IT_ADDI;
+		else if (line == "mulr")
+			instr[0] = IT_MULR;
+		else if (line == "muli")
+			instr[0] = IT_MULI;
+		else if (line == "banr")
+			instr[0] = IT_BANR;
+		else if (line == "bani")
+			instr[0] = IT_BANI;
+		else if (line == "borr")
+			instr[0] = IT_BORR;
+		else if (line == "bori")
+			instr[0] = IT_BORI;
+		else if (line == "setr")
+			instr[0] = IT_SETR;
+		else if (line == "seti")
+			instr[0] = IT_SETI;
+		else if (line == "gtir")
+			instr[0] = IT_GTIR;
+		else if (line == "gtri")
+			instr[0] = IT_GTRI;
+		else if (line == "gtrr")
+			instr[0] = IT_GTRR;
+		else if (line == "eqir")
+			instr[0] = IT_EQIR;
+		else if (line == "eqri")
+			instr[0] = IT_EQRI;
+		else if (line == "eqrr")
+			instr[0] = IT_EQRR;
 		else
-		{
-			while (it < path.size() - 1 && path[++it][j] == '-')
-				;
-			if (path[it][j] != ' ' && path[it][jt] != '-')
-			{
-				nStep += it-i;
-				i = it;
-				comingFrom = 1;
-			}
-			else
-			{
-				it = i;
-				while (it != 0 && path[--it][jt] == '-')
-					;
-				if (path[it][jt] != ' ' && path[it][jt] != '-')
-				{
-					nStep += i-it;
-					i = it;
-					comingFrom = 3;
-				}
-				else
-				{
-					//std::cout << "Path ended in +, coming from " << comingFrom << "." << std::endl;
-					goto exitLabyrinth;
-				}
-			}
-		}
+			instr[0] = IT_INVL;
+
+		infile >> instr[1];
+		infile >> instr[2];
+		infile >> instr[3];
 	}
 
-exitLabyrinth:
+	// part a
+	std::vector<uint> reg(6,0);
+	uint& pc = reg[ip];
+	while (pc < vInstr.size())
+	{
+		instructionResult(vInstr[pc], reg, reg);
+		++pc;
+	}
+	uint sola = reg[0];
 
-	writeSolution(sola, nStep);
+
+	// part b (algorithm calculates sum of all divisors)
+	int solb = 0;
+	int a = 10551432;
+	int s = sqrt(a);
+	for (int i = 1; i <= s; ++i)
+		if (a % i == 0)
+			solb += i + (a/i);
+
+
+	writeSolution(sola, solb);
 }
 
 
