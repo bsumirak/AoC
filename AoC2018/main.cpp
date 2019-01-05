@@ -48,19 +48,18 @@ void writeSolution(A a, B b);
 #include "day13.h"
 #include "day14.h"
 #include "day15.h"
-*/
 #include "day16.h"
 #include "day17.h"
 #include "day18.h"
 #include "day19.h"
+*/
 #include "day20.h"
 #include "day21.h"
 #include "day22.h"
-/*
 #include "day23.h"
 #include "day24.h"
 #include "day25.h"
-*/
+
 template <typename A, typename B>
 void writeSolution(A a, B b)
 {
