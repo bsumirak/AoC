@@ -101,7 +101,6 @@ void executeDay<20>(const std::string& fn)
 			}
 			case ')':
 			{
-				PathNode* parent = stack.top()->pn;
 				PathNode* next = new PathNode();
 
 				// close open ends
