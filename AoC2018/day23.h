@@ -1,162 +1,68 @@
 /*
  * day23.h
  *
- *  Created on: 23.12.2017
+ *  Created on: 2019-01-06
  *      Author: mbreit
  */
+
+
+struct NanoBot
+{
+	NanoBot(int x, int y, int z, uint _r)
+	: r(_r)
+	{
+		pos[0] = x;
+		pos[1] = y;
+		pos[2] = z;
+	}
+
+	int pos[3];
+	uint r;
+};
 
 
 template <>
 void executeDay<23>(const std::string& fn)
 {
+	// read input
 	std::ifstream infile(fn.c_str());
 
-	std::string line;
+	std::vector<NanoBot> vNB;
 
-	std::vector<std::string> vInstr;
-	vInstr.reserve(1000);
-
-	// read data
-	while (std::getline(infile, line))
-		vInstr.push_back(line);
-	size_t sz = vInstr.size();
-
-	// part a
-	int sola = 0;
+	int tmp;
+	uint maxR = 0;
+	size_t maxInd = 0;
+	while (infile >> tmp)
 	{
-		std::vector<int64_t> reg(8, 0);
+		int y, z;
+		uint r;
+		infile >> y;
+		infile >> z;
+		infile >> r;
+		vNB.push_back(NanoBot(tmp, y, z, r));
 
-		size_t sz = vInstr.size();
-		int pos = 0;
-		int lastFreq = 0;
-		while (pos >= 0 && pos < (int) sz)
+		if (r > maxR)
 		{
-			std::istringstream iss(vInstr[pos]);
-			std::string instr;
-
-	//std::cout << vInstr[pos] << std::endl;
-
-			iss >> instr;
-
-
-
-
-			std::string next;
-			iss >> next;
-
-			int arg1I;
-			bool arg1IsReg = true;
-			if (next[0] - 'a' < 8 && next[0] - 'a' >= 0)
-			{
-				arg1I = next[0] - 'a';
-				arg1IsReg = true;
-			}
-			else
-			{
-				arg1I = std::stoi(next);
-				arg1IsReg = false;
-			}
-
-
-
-			int arg2I;
-			bool arg2IsReg = false;
-			iss >> next;
-			if (next[0] - 'a' < 8 && next[0] - 'a' >= 0)
-			{
-				arg2I = next[0] - 'a';
-				arg2IsReg = true;
-			}
-			else
-			{
-				arg2I = std::stoi(next);
-				arg2IsReg = false;
-			}
-
-//std::cout << instr << " " << (arg1IsReg ? "r" : "") << arg1I << " " << (arg2IsReg ? "r" : "") << arg2I << std::endl;
-
-
-
-
-			if (instr == "set")
-			{
-				if (arg2IsReg)
-					reg[arg1I] = reg[arg2I];
-				else
-					reg[arg1I] = arg2I;
-			}
-			else if (instr == "sub")
-			{
-				if (arg2IsReg)
-					reg[arg1I] = reg[arg1I] - reg[arg2I];
-				else
-					reg[arg1I] = reg[arg1I] - arg2I;
-			}
-			else if (instr == "mul")
-			{
-				if (arg2IsReg)
-					reg[arg1I] = reg[arg1I] * reg[arg2I];
-				else
-					reg[arg1I] = reg[arg1I] * arg2I;
-
-				++sola;
-			}
-			else if (instr == "jnz")
-			{
-				if (arg1IsReg)
-				{
-					if (reg[arg1I] != 0)
-					{
-						if (arg2IsReg)
-							pos = pos + reg[arg2I] - 1;
-						else
-							pos = pos + arg2I - 1;
-					}
-				}
-				else
-				{
-					if (arg1I != 0)
-					{
-						if (arg2IsReg)
-							pos = pos + reg[arg2I] - 1;
-						else
-							pos = pos + arg2I - 1;
-					}
-				}
-			}
-			else throw;
-
-			++pos;
+			maxR = r;
+			maxInd = vNB.size() - 1;
 		}
 	}
+	const size_t nNB = vNB.size();
 
-	// part b: find non-prime numbers in [108100, 125100]
-	int last = 354;
-	std::vector<bool> sieve(355, true);
-	std::vector<bool> zone(17001, true);
-	for (int i = 2; i <= last; ++i)
+
+	// part a
+	size_t nInRange = 0;
+	for (size_t i = 0; i < nNB; ++i)
 	{
-		if (!sieve[i])
-			continue;
-
-		// shoot in sieve
-		for (int j = 2*i; j <= last; j += i)
-			sieve[j] = false;
-
-		// shoot in zone
-		int rest = 108100 % i;
-		int start = (i - rest) % i;
-
-		for (int j = start; j < 17001; j += i)
-			zone[j] = false;
+		uint dist = abs(vNB[i].pos[0] - vNB[maxInd].pos[0]);
+		dist += abs(vNB[i].pos[1] - vNB[maxInd].pos[1]);
+		dist += abs(vNB[i].pos[2] - vNB[maxInd].pos[2]);
+		if (dist <= vNB[maxInd].r)
+			++nInRange;
 	}
 
-	size_t cnt = 0;
-	for (size_t i = 0; i < 17001; i += 17)
-		if (!zone[i])
-			++cnt;
 
-	writeSolution(sola, cnt);
+	writeSolution(nInRange, 0);
 }
 
 
