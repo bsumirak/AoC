@@ -5,6 +5,8 @@
  *      Author: mbreit
  */
 
+#include <algorithm>
+
 
 template <>
 void executeDay<2>(const std::string& fn)
