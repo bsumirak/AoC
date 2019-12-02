@@ -8,81 +8,88 @@
 #include <algorithm>
 
 
+void runProgram(std::vector<int>& opCode)
+{
+	int* instr = &opCode[0];
+
+	bool doBreak = false;
+	while (!doBreak)
+	{
+		switch (*instr)
+		{
+			case 1:
+			{
+				int sum = opCode[*++instr];
+				sum += opCode[*++instr];
+				opCode[*++instr] = sum;
+				break;
+			}
+			case 2:
+			{
+				int prod = opCode[*++instr];
+				prod *= opCode[*++instr];
+				opCode[*++instr] = prod;
+				break;
+			}
+			case 99:
+				doBreak = true;
+				break;
+			default:
+				throw new std::runtime_error("Wrong op.");
+		}
+		++instr;
+	}
+}
+
+
 template <>
 void executeDay<2>(const std::string& fn)
 {
-	std::ifstream infile(fn.c_str());
-	std::vector<std::string> vID;
-	int n2 = 0;
-	int n3 = 0;
-	int suma = 0;
-	std::string solb;
-	std::string id;
+	std::vector<int> opCode;
+
+	{
+		std::ifstream infile(fn.c_str());
+		int id;
+		while (infile >> id)
+			opCode.push_back(id);
+	}
+	std::vector<int> vCopy = opCode;
+
 
 	// part a
-	while (infile >> id)
-	{
-		vID.push_back(id);
-		const size_t len = id.size();
-		std::map<char, int> counter;
-		for (size_t i = 0; i < len; ++i)
-		{
-			++counter[id[i]];
-		}
-
-		std::map<char, int>::const_iterator it = counter.begin();
-		std::map<char, int>::const_iterator itEnd = counter.end();
-		bool hasDouble = false;
-		bool hasTriple = false;
-		for (; it != itEnd; ++it)
-		{
-			if (it->second == 2)
-				hasDouble = true;
-			else if (it->second== 3)
-				hasTriple = true;
-		}
-		if (hasDouble)
-			++n2;
-		if (hasTriple)
-			++n3;
-
-	}
-	suma = n2*n3;
-
+	opCode[1] = 12;
+	opCode[2] = 2;
+	runProgram(opCode);
+	int sola = opCode[0];
 
 	// part b
-	std::sort(vID.begin(), vID.end());
-	const size_t sz = vID.size() - 1;
-	for (size_t i = 0; i < sz; ++i)
+	int noun = 0;
+	int verb = 0;
+	bool doBreak = false;
+	for (; noun < 100; ++noun)
 	{
-		// compare with next
-		std::string& s1 = vID[i];
-		std::string& s2 = vID[i+1];
-
-		const size_t len = s1.size();
-		int differIn = -1;
-		for (size_t j = 0; j < len; ++j)
+		for (verb = 0; verb < 100; ++verb)
 		{
-			if (s1[j] != s2[j])
+			opCode = vCopy;
+			opCode[1] = noun;
+			opCode[2] = verb;
+			runProgram(opCode);
+			if (opCode[0] == 19690720)
 			{
-				if (differIn == -1)
-					differIn = j;
-				else
-				{
-					differIn = -1;
-					break;
-				}
+				doBreak = true;
+				break;
 			}
 		}
-		if (differIn != -1)
-		{
-			solb = s1.erase(differIn, 1);
+		if (doBreak)
 			break;
-		}
 	}
 
+	if (!doBreak)
+		throw new std::runtime_error("Desired end state not reached.");
 
-	writeSolution(suma, solb);
+	int solb = 100*noun + verb;
+
+	writeSolution(sola, solb);
 }
 
 
