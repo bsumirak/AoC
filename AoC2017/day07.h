@@ -154,7 +154,7 @@ void executeDay<7>(const std::string& fn)
 	// now we are in the child with the wrong weight
 
 	if (node->children.size() == 2)
-		std::cout << "This case is not implemented." << std::cout;
+		std::cout << "This case is not implemented." << std::endl;
 
 	size_t culprit;
 	size_t sz = node->children.size();
@@ -200,5 +200,3 @@ void executeDay<7>(const std::string& fn)
 
 	writeSolution(rootName, reqW);
 }
-
-
