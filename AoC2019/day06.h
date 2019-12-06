@@ -35,6 +35,74 @@ void traverseDF(TNode* node, TFct& fct)
 }
 
 
+template <typename TNode>
+std::size_t shortestPathLengthBetweenTreeNodes(TNode* n1, TNode* n2)
+{
+	std::size_t len = 1;
+	TNode** continueSoloWith = NULL;
+
+	// get up to root from both nodes simultaneously,
+	// break if one hits the path of the other or if one ends up in root
+	while (!continueSoloWith)
+	{
+		n1->visit = len;
+		if (n1->parent)
+		{
+			n1 = n1->parent;
+			if (n1->visit)
+			{
+				len += n1->visit - 1;
+				break;
+			}
+		}
+		else
+			continueSoloWith = &n2;
+
+		n2->visit = len;
+		if (n2->parent)
+		{
+			n2 = n2->parent;
+			if (n2->visit)
+			{
+				len += n2->visit - 1;
+				continueSoloWith = NULL;
+				break;
+			}
+		}
+		else
+			continueSoloWith = &n1;
+
+		++len;
+	}
+
+	// if one node has ended up in root, continue solo with the other,
+	// until it hits the path of the former
+	if (continueSoloWith)
+	{
+		TNode* n = *continueSoloWith;
+		n->visit = len;
+		++len;
+		while (n->parent)
+		{
+			n = n->parent;
+			if (n->visit)
+			{
+				len += n->visit - 2;
+				break;
+			}
+		}
+		if (!n->visit)
+		{
+			std::cout << "No common root for nodes." << std::endl;
+			throw std::runtime_error("");
+		}
+	}
+
+	return len;
+}
+
+
+
 template <>
 void executeDay<6>(const std::string& fn)
 {
@@ -84,45 +152,11 @@ void executeDay<6>(const std::string& fn)
 	};
 	traverseDF(node, lambda);
 
-	// part b (note: this breadth-first search is unnecessarily complex)
-	int solb;
+
+	// part b
 	node6* me = nodeMap["YOU"]->parent;
 	node6* santa = nodeMap["SAN"]->parent;
-
-	std::queue<std::pair<node6*, int> > q;
-	q.push(std::make_pair(me, 0));
-	while (!q.empty())
-	{
-		std::pair<node6*, int> cur = q.front();
-		q.pop();
-
-		cur.first->visit = 1;
-		node6* p = cur.first->parent;
-		if (p == santa)
-		{
-			solb = cur.second + 1;
-			break;
-		}
-		if (p && p->visit != 1)
-			q.push(std::make_pair(p, cur.second+1));
-
-		bool santaFound = false;
-		const std::size_t nCh = cur.first->children.size();
-		for (std::size_t c = 0; c < nCh; ++c)
-		{
-			node6* ch = cur.first->children[c];
-			if (ch == santa)
-			{
-				solb = cur.second + 1;
-				santaFound = true;
-				break;
-			}
-			if (ch->visit != 1)
-				q.push(std::make_pair(ch, cur.second+1));
-		}
-		if (santaFound)
-			break;
-	}
+	std::size_t solb = shortestPathLengthBetweenTreeNodes(me, santa);
 
 	writeSolution(sola, solb);
 }
