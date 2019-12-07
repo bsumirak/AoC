@@ -35,7 +35,6 @@ void IntCodeMachine<TPrecision>::reset(const std::vector<tPrec>& opCode)
 	m_opCode = opCode;
 	m_ip = &m_opCode[0];
 	m_state = ICMS_READY;
-	m_bHaltOnOutput = false;
 }
 
 
@@ -142,7 +141,7 @@ void IntCodeMachine<TPrecision>::execute
 			}
 
 			case 99:
-				m_state = ICMS_ILLEGAL_INSTRUCTION;
+				m_state = ICMS_FINISHED;
 				doBreak = true;
 				break;
 
