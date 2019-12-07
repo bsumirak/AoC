@@ -6,7 +6,6 @@
  */
 
 #include "classes/intCodeMachine.h"
-#include <array>
 
 
 template <>
@@ -34,9 +33,10 @@ void executeDay<7>(const std::string& fn)
 	std::vector<int> input(2, 0);
 	do
 	{
+		output[0] = 0;
 		for (std::size_t b = 0; b < 5; ++b)
 		{
-			icm[b].setOpCode(opCode);
+			icm[b].reset(opCode);
 			input[0] = phaseInput[b];
 			input[1] = output[0];
 			output.clear();
@@ -47,22 +47,17 @@ void executeDay<7>(const std::string& fn)
 	while (std::next_permutation(phaseInput.begin(), phaseInput.end()));
 
 
-/*
-	std::vector<int> phaseInput(5);
+	// part b
 	for (std::size_t i = 0; i < 5; ++i)
 		phaseInput[i] = i+5;
 
-	int maxOutput = -std::numeric_limits<int>::max();
-	std::vector<int> output(1, 0);
-	std::vector<int> input(2, 0);
+	int solb = -std::numeric_limits<int>::max();
 	do
 	{
-		std::vector<std::vector<int> > vCopy(5, opCode);
-		int loopCnt = 0;
 		int lastOutput = 0;
-		std::vector<std::size_t> retVal(5, 0);
+		int loopCnt = 0;
 		output[0] = 0;
-		while (retVal[4] != std::size_t(-1))
+		while (icm[4].state() != IntCodeMachine<int>::ICMS_FINISHED)
 		{
 			for (std::size_t b = 0; b < 5; ++b)
 			{
@@ -76,17 +71,17 @@ void executeDay<7>(const std::string& fn)
 					input[0] = output[0];
 				}
 				output.clear();
-				retVal[b] = runProgram7(vCopy[b], output, &input, retVal[b]);
+				icm[b].execute(input, output);
 			}
-			if (retVal[4] != std::size_t(-1))
+			if (icm[4].state() != IntCodeMachine<int>::ICMS_FINISHED)
 				lastOutput = output[0];
 			++loopCnt;
 		}
-		maxOutput = std::max(maxOutput, lastOutput);
+		solb = std::max(solb, lastOutput);
 	}
 	while (std::next_permutation(phaseInput.begin(), phaseInput.end()));
-*/
 
-	writeSolution(sola, 0);
+
+	writeSolution(sola, solb);
 }
 

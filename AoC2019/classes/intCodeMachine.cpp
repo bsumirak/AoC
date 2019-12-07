@@ -23,17 +23,19 @@ IntCodeMachine<TPrecision>::IntCodeMachine() :
 template <typename TPrecision>
 IntCodeMachine<TPrecision>::IntCodeMachine(const std::vector<tPrec>& opCode) :
 	m_opCode(opCode),
-	m_ip(&opCode[0]),
-	m_state(ICMS_UNDF),
+	m_ip(&m_opCode[0]),
+	m_state(ICMS_READY),
 	m_bHaltOnOutput(false)
 {}
 
 
 template <typename TPrecision>
-void IntCodeMachine<TPrecision>::setOpCode(const std::vector<tPrec>& opCode)
+void IntCodeMachine<TPrecision>::reset(const std::vector<tPrec>& opCode)
 {
 	m_opCode = opCode;
-	m_ip = &opCode[0];
+	m_ip = &m_opCode[0];
+	m_state = ICMS_READY;
+	m_bHaltOnOutput = false;
 }
 
 
@@ -85,16 +87,18 @@ void IntCodeMachine<TPrecision>::execute
 			}
 			case 3:
 			{
-				if (userInput < vInputs->size())
+				if (userInput < vInputs.size())
 				{
-					m_opCode[*++m_ip] = (*vInputs)[userInput];
+					m_opCode[*++m_ip] = vInputs[userInput];
 					++userInput;
 				}
 				else
 				{
 					std::cout << "Program requested user input no. " << userInput
-						<< ", but only " << vInputs->size() << " are provided.";
+						<< ", but only " << vInputs.size() << " are provided." << std::endl;
 					m_state = ICMS_WAITING_FOR_INPUT;
+					doBreak = true;
+					--m_ip;
 				}
 				break;
 			}
@@ -138,6 +142,7 @@ void IntCodeMachine<TPrecision>::execute
 			}
 
 			case 99:
+				m_state = ICMS_ILLEGAL_INSTRUCTION;
 				doBreak = true;
 				break;
 
@@ -159,16 +164,21 @@ auto IntCodeMachine<TPrecision>::state() const -> State
 
 
 template <typename TPrecision>
-void IntCodeMachine<TPrecision>::extractParamMode(std::vector<tPrec>& vModes, const tPrec& opCode)
+void IntCodeMachine<TPrecision>::extractParamMode(std::vector<tPrec>& vModes, tPrec& opCode)
 {
-	tPrec opCodeCp = opCode;
-	tPrec restoreOC = opCodeCp % 100;
-	opCodeCp /= 100;
+	tPrec restoreOC = opCode % 100;
+	opCode /= 100;
 	const std::size_t nModes = vModes.size();
 	for (std::size_t i = 0; i < nModes; ++i)
 	{
-		vModes[i] = opCodeCp % 10;
-		opCodeCp /= 10;
+		vModes[i] = opCode % 10;
+		opCode /= 10;
 	}
+	opCode = restoreOC;
 }
 
+
+
+// explicit template instantiationa
+template class IntCodeMachine<int>;
+template class IntCodeMachine<int64_t>;

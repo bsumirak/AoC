@@ -19,6 +19,7 @@
 #include <queue>
 #include <cmath>
 #include <list>
+#include <array>
 
 
 // function template for every day

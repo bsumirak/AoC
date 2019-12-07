@@ -25,13 +25,14 @@ public:
 		ICMS_ILLEGAL_INSTRUCTION,
 		ICMS_WAITING_FOR_INPUT,
 		ICMS_READY,
+		ICMS_FINISHED,
 		ICMS_UNDF
 	};
 
 	IntCodeMachine();
 	IntCodeMachine(const std::vector<tPrec>& opCode);
 
-	void setOpCode(const std::vector<tPrec>& opCode);
+	void reset(const std::vector<tPrec>& opCode);
 
 	void setHaltOnInput(bool b);
 
@@ -44,7 +45,7 @@ public:
 	State state() const;
 
 private:
-	void extractParamMode(std::vector<tPrec>& vModes, const tPrec& opCode);
+	void extractParamMode(std::vector<tPrec>& vModes, tPrec& opCode);
 
 	std::vector<tPrec> m_opCode;
 	tPrec* m_ip;
