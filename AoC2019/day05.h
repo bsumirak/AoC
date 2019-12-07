@@ -76,7 +76,10 @@ void runProgram5
 			case 5: // jmp if true
 			{
 				if (vModes[0] ? *++instr : opCode[*++instr])
-					instr = &opCode[vModes[1] ? *++instr : opCode[*++instr]]-1;
+				{
+					int* nextInstr = &opCode[vModes[1] ? *++instr : opCode[*++instr]]-1;
+					instr = nextInstr;
+				}
 				else
 					++instr;
 				break;
@@ -85,7 +88,10 @@ void runProgram5
 			{
 
 				if (!(vModes[0] ? *++instr : opCode[*++instr]))
-					instr = &opCode[vModes[1] ? *++instr : opCode[*++instr]]-1;
+				{
+					int* nextInstr = &opCode[vModes[1] ? *++instr : opCode[*++instr]]-1;
+					instr = nextInstr;
+				}
 				else
 					++instr;
 				break;

@@ -24,7 +24,7 @@
 // function template for every day
 // to be specialized by every day
 template <int i>
-void executeDay(const std::string& fn) {};
+void executeDay(const std::string& fn) {}
 
 // forward declaration
 template <typename A, typename B>
@@ -37,8 +37,8 @@ void writeSolution(A a, B b);
 #include "day04.h"
 #include "day05.h"
 #include "day06.h"
-/*#include "day07.h"
-#include "day08.h"
+#include "day07.h"
+/*#include "day08.h"
 #include "day09.h"
 #include "day10.h"
 #include "day11.h"
