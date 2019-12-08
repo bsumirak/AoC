@@ -9,73 +9,73 @@
 template <>
 void executeDay<8>(const std::string& fn)
 {
+	// read data
 	std::ifstream infile(fn.c_str());
-	std::string line;
+	std::string pic;
+	infile >> pic;
+	std::size_t nLayers = pic.size() / std::size_t(150);
+
 
 	// part a
-	std::map<std::string, int> reg;
-	int maxb = std::numeric_limits<int>::min();
-	while (std::getline(infile, line))
+	std::size_t nMinZero = 150;
+	std::size_t nMin1 = 0;
+	std::size_t nMin2 = 0;
+	for (std::size_t l = 0; l < nLayers; ++l)
 	{
-		std::istringstream iss(line);
-		std::string affReg;
-		iss >> affReg;
-
-		// create reg if not present already
-		if (reg.find(affReg) == reg.end())
-			reg[affReg] = 0;
-
-		std::string op;
-		iss >> op;
-
-		std::string tmp;
-		iss >> tmp;
-		int opVal = atoi(tmp.c_str());
-		if (op == "dec")
-			opVal *= -1;
-
-		iss >> tmp; // ignore "if"
-
-		std::string condReg;
-		iss >> condReg;
-
-		if (reg.find(condReg) == reg.end())
-			reg[condReg] = 0;
-
-		std::string comp;
-		iss >> comp;
-
-		iss >> tmp;
-		int compVal = atoi(tmp.c_str());
-
-		// perform action
-		bool doAdd = false;
-		if ((comp == "<" && reg[condReg] < compVal)
-			|| (comp == ">" && reg[condReg] > compVal)
-			|| (comp == "<=" && reg[condReg] <= compVal)
-			|| (comp == ">=" && reg[condReg] >= compVal)
-			|| (comp == "==" && reg[condReg] == compVal)
-			|| (comp == "!=" && reg[condReg] != compVal)
-		)
+		std::size_t n0 = 0;
+		std::size_t n1 = 0;
+		std::size_t n2 = 0;
+		for (std::size_t r = 0; r < std::size_t(6); ++r)
 		{
-			reg[affReg] += opVal;
-			if (reg[affReg] > maxb)
-				maxb = reg[affReg];
+			for (std::size_t c = 0; c < std::size_t(25); ++c)
+			{
+				switch (pic[150*l + 25*r + c])
+				{
+					case '0':
+						++n0; break;
+					case '1':
+						++n1; break;
+					case '2':
+						++n2; break;
+					default:
+						break;
+				}
+			}
+		}
+
+		if (n0 < nMinZero)
+		{
+			nMinZero = n0;
+			nMin1 = n1;
+			nMin2 = n2;
 		}
 	}
+	std::size_t sola = nMin1 * nMin2;
+	std::cout << "part 1: " << sola << std::endl;
 
-	// search max after all instructions
-	std::map<std::string, int>::iterator it = reg.begin();
-	std::map<std::string, int>::iterator itEnd = reg.end();
-	int maxa = std::numeric_limits<int>::min();
-	for (; it != itEnd; ++it)
+
+	// part b
+	std::cout << "part 2: " << std::endl;
+	for (std::size_t r = 0; r < std::size_t(6); ++r)
 	{
-		if (it->second > maxa)
-			maxa = it->second;
-	}
+		for (std::size_t c = 0; c < std::size_t(25); ++c)
+		{
+			std::size_t l = 0;
+			while (pic[150*l + 25*r + c] == '2')
+				++l;
 
-	// solution output
-	writeSolution(maxa, maxb);
+			switch (pic[150*l + 25*r + c])
+			{
+				case '0':
+					std::cout << " "; break;
+				case '1':
+					std::cout << "*"; break;
+				default:
+					break;
+			}
+		}
+		std::cout << std::endl;
+	}
 }
 
 
