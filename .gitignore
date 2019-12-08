@@ -1,3 +1,6 @@
 **/.settings/
 **/aoc
+**/bin
+**/build
+**/lib
 aoc.dSYM/
