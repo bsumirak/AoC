@@ -1,68 +1,44 @@
 /*
  * day09.h
  *
- *  Created on: 09.12.2017
+ *  Created on: 2019-12-09
  *      Author: mbreit
  */
+
+#include "classes/intCodeMachine.h"
 
 
 template <>
 void executeDay<9>(const std::string& fn)
 {
-	std::ifstream infile(fn.c_str());
-	char c;
-	int suma = 0;
-	int sumb = 0;
-	int curScore = 0;
-	bool ignoreNext = false;
-	bool inGarbage = false;
-	while (infile.get(c))
+	std::vector<int64_t> opCode;
+
+	// read program
 	{
-		if (ignoreNext)
-		{
-			ignoreNext = false;
-			continue;
-		}
-
-		if (c == '!')
-		{
-			ignoreNext = true;
-			continue;
-		}
-
-		if (inGarbage)
-		{
-			if (c == '>')
-				inGarbage = false;
-			else
-				++sumb;
-
-			continue;
-		}
-
-		if (c == '<')
-		{
-			inGarbage = true;
-			continue;
-		}
-
-		if (c == '{')
-		{
-			curScore += 1;
-			suma += curScore;
-			continue;
-		}
-
-		if (c == '}')
-		{
-			curScore -= 1;
-			continue;
-		}
+		std::ifstream infile(fn.c_str());
+		int id;
+		while (infile >> id)
+			opCode.push_back(id);
 	}
-	infile.close();
+
+	// part a
+	IntCodeMachine<int64_t> icm(opCode);
+	icm.setMemorySize(10000);
+	std::vector<int64_t> input(1, 1);
+	std::vector<int64_t> output;
+	icm.execute(input, output);
+	int64_t sola = output[0];
+
+	// part b
+	icm.reset(opCode);
+	icm.setMemorySize(10000);
+	input[0] = 2;
+	output.clear();
+	icm.execute(input, output);
+	int64_t solb = output[0];
 
 	// solution output
-	writeSolution(suma, sumb);
+	writeSolution(sola, solb);
 }
 
 

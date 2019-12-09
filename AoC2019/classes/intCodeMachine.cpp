@@ -15,6 +15,7 @@
 template <typename TPrecision>
 IntCodeMachine<TPrecision>::IntCodeMachine() :
 	m_ip(NULL),
+	m_relBase(0),
 	m_state(ICMS_UNDF),
 	m_bHaltOnOutput(false)
 {}
@@ -24,6 +25,7 @@ template <typename TPrecision>
 IntCodeMachine<TPrecision>::IntCodeMachine(const std::vector<tPrec>& opCode) :
 	m_opCode(opCode),
 	m_ip(&m_opCode[0]),
+	m_relBase(0),
 	m_state(ICMS_READY),
 	m_bHaltOnOutput(false)
 {}
@@ -34,6 +36,7 @@ void IntCodeMachine<TPrecision>::reset(const std::vector<tPrec>& opCode)
 {
 	m_opCode = opCode;
 	m_ip = &m_opCode[0];
+	m_relBase = 0;
 	m_state = ICMS_READY;
 }
 
@@ -46,6 +49,14 @@ void IntCodeMachine<TPrecision>::setHaltOnInput(bool b)
 
 
 template <typename TPrecision>
+void IntCodeMachine<TPrecision>::setMemorySize(std::size_t sz)
+{
+	m_opCode.resize(sz, 0);
+	m_ip = &m_opCode[0];
+}
+
+
+template <typename TPrecision>
 void IntCodeMachine<TPrecision>::execute
 (
 	const std::vector<tPrec> vInputs,
@@ -54,7 +65,8 @@ void IntCodeMachine<TPrecision>::execute
 {
 	std::size_t userInput = 0;
 
-	std::vector<tPrec> vModes(2);
+	std::vector<tPrec> vModes(3);
+	tPrec instr;
 	bool doBreak = false;
 	while (!doBreak)
 	{
@@ -64,31 +76,32 @@ void IntCodeMachine<TPrecision>::execute
 			break;
 		}
 
+		//std::cout << m_ip - &m_opCode[0] << ": ";
 		//std::cout << *m_ip << " ";
-		extractParamMode(vModes, *m_ip);
+		extractParamMode(vModes, instr, *m_ip);
 		//std::cout << vModes[0] << "," << vModes[1] << " " << *m_ip << std::endl;
 
-		switch (*m_ip)
+		switch (instr)
 		{
 			case 1:
 			{
-				tPrec sum = vModes[0] ? *++m_ip : m_opCode[*++m_ip];
-				sum += vModes[1] ? *++m_ip : m_opCode[*++m_ip];
-				m_opCode[*++m_ip] = sum;
+				tPrec sum = vModes[0] ? (vModes[0] == 2 ? m_opCode[*++m_ip + m_relBase] : *++m_ip) : m_opCode[*++m_ip];
+				sum += vModes[1] ? (vModes[1] == 2 ? m_opCode[*++m_ip + m_relBase] : *++m_ip) : m_opCode[*++m_ip];
+				(vModes[2] == 2 ? m_opCode[*++m_ip + m_relBase] : m_opCode[*++m_ip]) = sum;
 				break;
 			}
 			case 2:
 			{
-				tPrec prod = vModes[0] ? *++m_ip : m_opCode[*++m_ip];
-				prod *= vModes[1] ? *++m_ip : m_opCode[*++m_ip];
-				m_opCode[*++m_ip] = prod;
+				tPrec prod = vModes[0] ? (vModes[0] == 2 ? m_opCode[*++m_ip + m_relBase] : *++m_ip) : m_opCode[*++m_ip];
+				prod *= vModes[1] ? (vModes[1] == 2 ? m_opCode[*++m_ip + m_relBase] : *++m_ip) : m_opCode[*++m_ip];
+				(vModes[2] == 2 ? m_opCode[*++m_ip + m_relBase] : m_opCode[*++m_ip]) = prod;
 				break;
 			}
 			case 3:
 			{
 				if (userInput < vInputs.size())
 				{
-					m_opCode[*++m_ip] = vInputs[userInput];
+					(vModes[0] == 2 ? m_opCode[*++m_ip + m_relBase] : m_opCode[*++m_ip]) = vInputs[userInput];
 					++userInput;
 				}
 				else
@@ -103,15 +116,15 @@ void IntCodeMachine<TPrecision>::execute
 			}
 			case 4:
 			{
-				vOutputs.push_back((vModes[0] ? *++m_ip : m_opCode[*++m_ip]));
+				vOutputs.push_back((vModes[0] ? (vModes[0] == 2 ? m_opCode[*++m_ip + m_relBase] : *++m_ip) : m_opCode[*++m_ip]));
 				if (m_bHaltOnOutput)
 					doBreak = true;
 				break;
 			}
 			case 5: // jmp if true
 			{
-				if (vModes[0] ? *++m_ip : m_opCode[*++m_ip])
-					m_ip = &m_opCode[vModes[1] ? *++m_ip : m_opCode[*++m_ip]]-1;
+				if (vModes[0] ? (vModes[0] == 2 ? m_opCode[*++m_ip + m_relBase] : *++m_ip) : m_opCode[*++m_ip])
+					m_ip = &m_opCode[vModes[1] ? (vModes[1] == 2 ? m_opCode[*++m_ip + m_relBase] : *++m_ip) : m_opCode[*++m_ip]]-1;
 				else
 					++m_ip;
 				break;
@@ -119,24 +132,29 @@ void IntCodeMachine<TPrecision>::execute
 			case 6: // jmp if false
 			{
 
-				if (!(vModes[0] ? *++m_ip : m_opCode[*++m_ip]))
-					m_ip = &m_opCode[vModes[1] ? *++m_ip : m_opCode[*++m_ip]]-1;
+				if (!(vModes[0] ? (vModes[0] == 2 ? m_opCode[*++m_ip + m_relBase] : *++m_ip) : m_opCode[*++m_ip]))
+					m_ip = &m_opCode[vModes[1] ? (vModes[1] == 2 ? m_opCode[*++m_ip + m_relBase] : *++m_ip) : m_opCode[*++m_ip]]-1;
 				else
 					++m_ip;
 				break;
 			}
 			case 7: // less than
 			{
-				tPrec val0 = vModes[0] ? *++m_ip : m_opCode[*++m_ip];
-				tPrec val1 = vModes[1] ? *++m_ip : m_opCode[*++m_ip];
-				m_opCode[*++m_ip] = (val0 < val1) ? 1 : 0;
+				tPrec val0 = vModes[0] ? (vModes[0] == 2 ? m_opCode[*++m_ip + m_relBase] : *++m_ip) : m_opCode[*++m_ip];
+				tPrec val1 = vModes[1] ? (vModes[1] == 2 ? m_opCode[*++m_ip + m_relBase] : *++m_ip) : m_opCode[*++m_ip];
+				(vModes[2] == 2 ? m_opCode[*++m_ip + m_relBase] : m_opCode[*++m_ip]) = (val0 < val1) ? 1 : 0;
 				break;
 			}
 			case 8: //  equal
 			{
-				tPrec val0 = vModes[0] ? *++m_ip : m_opCode[*++m_ip];
-				tPrec val1 = vModes[1] ? *++m_ip : m_opCode[*++m_ip];
-				m_opCode[*++m_ip] = (val0 == val1) ? 1 : 0;
+				tPrec val0 = vModes[0] ? (vModes[0] == 2 ? m_opCode[*++m_ip + m_relBase] : *++m_ip) : m_opCode[*++m_ip];
+				tPrec val1 = vModes[1] ? (vModes[1] == 2 ? m_opCode[*++m_ip + m_relBase] : *++m_ip) : m_opCode[*++m_ip];
+				(vModes[2] == 2 ? m_opCode[*++m_ip + m_relBase] : m_opCode[*++m_ip]) = (val0 == val1) ? 1 : 0;
+				break;
+			}
+			case 9:
+			{
+				m_relBase += vModes[0] ? (vModes[0] == 2 ? m_opCode[*++m_ip + m_relBase] : *++m_ip) : m_opCode[*++m_ip];
 				break;
 			}
 
@@ -163,17 +181,18 @@ auto IntCodeMachine<TPrecision>::state() const -> State
 
 
 template <typename TPrecision>
-void IntCodeMachine<TPrecision>::extractParamMode(std::vector<tPrec>& vModes, tPrec& opCode)
+void IntCodeMachine<TPrecision>::extractParamMode(std::vector<tPrec>& vModes, tPrec& instr, const tPrec& opCode)
 {
 	tPrec restoreOC = opCode % 100;
-	opCode /= 100;
+	instr = opCode;
+	instr /= 100;
 	const std::size_t nModes = vModes.size();
 	for (std::size_t i = 0; i < nModes; ++i)
 	{
-		vModes[i] = opCode % 10;
-		opCode /= 10;
+		vModes[i] = instr % 10;
+		instr /= 10;
 	}
-	opCode = restoreOC;
+	instr = restoreOC;
 }
 
 

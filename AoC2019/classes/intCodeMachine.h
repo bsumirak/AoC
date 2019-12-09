@@ -36,6 +36,8 @@ public:
 
 	void setHaltOnInput(bool b);
 
+	void setMemorySize(std::size_t sz);
+
 	void execute
 	(
 		const std::vector<tPrec> vInputs,
@@ -45,10 +47,11 @@ public:
 	State state() const;
 
 private:
-	void extractParamMode(std::vector<tPrec>& vModes, tPrec& opCode);
+	void extractParamMode(std::vector<tPrec>& vModes, tPrec& instr, const tPrec& opCode);
 
 	std::vector<tPrec> m_opCode;
 	tPrec* m_ip;
+	std::size_t m_relBase;
 
 	State m_state;
 
