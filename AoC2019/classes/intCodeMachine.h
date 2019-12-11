@@ -34,7 +34,7 @@ public:
 
 	void reset(const std::vector<tPrec>& opCode);
 
-	void setHaltOnInput(bool b);
+	void setHaltOnOutput(bool b);
 
 	void setMemorySize(std::size_t sz);
 

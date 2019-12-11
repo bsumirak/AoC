@@ -1,62 +1,175 @@
 /*
  * day11.h
  *
- *  Created on: 11.12.2017
+ *  Created on: 2019-12-11
  *      Author: mbreit
  */
+
+#include "classes/intCodeMachine.h"
 
 
 template <>
 void executeDay<11>(const std::string& fn)
 {
-	std::ifstream infile(fn.c_str());
-	std::string line;
-	std::getline(infile, line);
-	std::istringstream iss(line);
+	std::vector<int64_t> opCode;
 
-	// read file
-	std::vector<int> vLength(3,0);
-	std::string token;
-
-	int solb = 0;
-	while (std::getline(iss, token, ','))
+	// read program
 	{
-		if (token == "n")
-			++vLength[0];
-		else if (token == "s")
-			--vLength[0];
-		else if (token == "ne")
-			++vLength[1];
-		else if (token == "sw")
-			--vLength[1];
-		else if (token == "se")
-			++vLength[2];
-		else if (token == "nw")
-			--vLength[2];
-		else
-			std::cout << "Unknown direction." << std::endl;
-
-		int x = vLength[1] + vLength[2];
-		int y = 2*vLength[0] + vLength[1] - vLength[2];
-
-		// x dir first
-		int dist = abs(x);
-		if (abs(y) > abs(x))
-			dist += (abs(y) - abs(x)) / 2;
-
-		solb = std::max(solb, dist);
+		std::ifstream infile(fn.c_str());
+		int64_t id;
+		while (infile >> id)
+			opCode.push_back(id);
 	}
 
-	// part a
-	int x = vLength[1] + vLength[2];
-	int y = 2*vLength[0] + vLength[1] - vLength[2];
+	int sola = 1;
+	std::pair<int, int> curPos = {0, 0};
+	int curDir = 1;
+	std::map<std::pair<int, int>, int> hull;
+	auto hullIt = hull.begin();
+	hullIt = hull.insert(hullIt, std::make_pair(curPos, 0));
+	IntCodeMachine<int64_t> robot(opCode);
+	std::vector<int64_t> input(1, 0);
+	std::vector<int64_t> output;
+	robot.execute(input, output);
+	while (robot.state() == IntCodeMachine<int64_t>::ICMS_WAITING_FOR_INPUT)
+	{
+		if (output.size() != 2)
+		{
+			std::cout << "output size is " << output.size() << " instead of 2." << std::endl;
+			throw std::runtime_error("");
+		}
 
-	// x dir first
-	int sola = abs(x);
-	if (abs(y) > abs(x))
-		sola += (abs(y) - abs(x)) / 2;
+		// paint the hull
+		hullIt->second = output[0];
 
-	writeSolution(sola, solb);
+
+		// move
+		if (output[1] == 0)
+		{
+			// turn left
+			curDir = (curDir + 1) % 4;
+		}
+		else if (output[1] == 1)
+		{
+			// turn right
+			if (!curDir)
+				curDir = 3;
+			else
+				--curDir;
+		}
+		switch (curDir)
+		{
+			case 0:
+				++curPos.first; break;
+			case 1:
+				++curPos.second; break;
+			case 2:
+				--curPos.first; break;
+			case 3:
+				--curPos.second; break;
+			default: break;
+		}
+
+		// update hull iterator
+		hullIt = hull.lower_bound(curPos);
+		if (hullIt == hull.end() || hullIt->first != curPos)
+		{
+			++sola;
+			hullIt = hull.insert(hullIt, std::make_pair(curPos, 0));
+		}
+
+		// prepare next robot instruction
+		input[0] = hullIt->second;
+		output.clear();
+		robot.execute(input, output);
+	}
+	std::cout << "a: " << sola << std::endl;
+
+	// part b
+	curPos = {0, 0};
+	curDir = 1;
+	hull.clear();
+	hullIt = hull.begin();
+	hullIt = hull.insert(hullIt, std::make_pair(curPos, 1));
+	robot.reset(opCode);
+	robot.setMemorySize(10000);
+	do
+	{
+		// execute robot
+		input[0] = hullIt->second;
+		output.clear();
+		robot.execute(input, output);
+		if (output.size() != 2)
+		{
+			std::cout << "output size is " << output.size() << " instead of 2." << std::endl;
+			throw std::runtime_error("");
+		}
+
+		// update the hull
+		hullIt->second = output[0];
+
+		// move
+		if (output[1] == 0)
+		{
+			// turn left
+			curDir = (curDir + 1) % 4;
+		}
+		else if (output[1] == 1)
+		{
+			// turn right
+			if (!curDir)
+				curDir = 3;
+			else
+				--curDir;
+		}
+		switch (curDir)
+		{
+			case 0:
+				++curPos.first; break;
+			case 1:
+				++curPos.second; break;
+			case 2:
+				--curPos.first; break;
+			case 3:
+				--curPos.second; break;
+			default: break;
+		}
+
+		// update hull iterator
+		hullIt = hull.lower_bound(curPos);
+		if (hullIt == hull.end() || hullIt->first != curPos)
+			hullIt = hull.insert(hullIt, std::make_pair(curPos, 0));
+	}
+	while (robot.state() == IntCodeMachine<int64_t>::ICMS_WAITING_FOR_INPUT);
+
+	// now find max extensions and copy to arrays
+	int minX = std::numeric_limits<int>::max();
+	int maxX = std::numeric_limits<int>::min();
+	int minY = std::numeric_limits<int>::max();
+	int maxY = std::numeric_limits<int>::min();
+	auto hullItEnd = hull.end();
+	for (hullIt = hull.begin(); hullIt != hullItEnd; ++hullIt)
+	{
+		minX = std::min(minX, hullIt->first.first);
+		minY = std::min(minY, hullIt->first.second);
+		maxX = std::max(maxX, hullIt->first.first);
+		maxY = std::max(maxY, hullIt->first.second);
+	}
+	const std::size_t nRows = maxY - minY + 1;
+	const std::size_t nCols = maxX - minX + 1;
+
+	std::vector<std::vector<char> > paintedHull(nRows, std::vector<char>(nCols, ' '));
+	for (hullIt = hull.begin(); hullIt != hullItEnd; ++hullIt)
+		if (hullIt->second)
+			paintedHull[maxY - hullIt->first.second][hullIt->first.first - minX] = '#';
+
+	std::cout << "b:" << std::endl;
+	for (std::size_t r = 0; r < nRows; ++r)
+	{
+		for (std::size_t c = 0; c < nCols; ++c)
+			std::cout << paintedHull[r][c];
+		std::cout << std::endl;
+	}
 }
 
 

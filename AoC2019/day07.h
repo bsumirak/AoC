@@ -60,7 +60,7 @@ void executeDay<7>(const std::string& fn)
 		for (std::size_t b = 0; b < 5; ++b)
 		{
 			icm[b].reset(opCode);
-			icm[b].setHaltOnInput(true);
+			icm[b].setHaltOnOutput(true);
 		}
 		while (icm[4].state() != IntCodeMachine<int>::ICMS_FINISHED)
 		{

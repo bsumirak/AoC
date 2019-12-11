@@ -42,7 +42,7 @@ void IntCodeMachine<TPrecision>::reset(const std::vector<tPrec>& opCode)
 
 
 template <typename TPrecision>
-void IntCodeMachine<TPrecision>::setHaltOnInput(bool b)
+void IntCodeMachine<TPrecision>::setHaltOnOutput(bool b)
 {
 	m_bHaltOnOutput = b;
 }
@@ -106,8 +106,8 @@ void IntCodeMachine<TPrecision>::execute
 				}
 				else
 				{
-					std::cout << "Program requested user input no. " << userInput
-						<< ", but only " << vInputs.size() << " are provided." << std::endl;
+					//std::cout << "Program requested user input no. " << userInput
+					//	<< ", but only " << vInputs.size() << " are provided." << std::endl;
 					m_state = ICMS_WAITING_FOR_INPUT;
 					doBreak = true;
 					--m_ip;
