@@ -10,6 +10,7 @@
 #include <iostream>
 #include <limits>
 #include <algorithm>
+#include <cstring>
 
 
 template <typename TPrecision>
@@ -34,6 +35,14 @@ IntCodeMachine<TPrecision>::IntCodeMachine(const std::vector<tPrec>& opCode) :
 template <typename TPrecision>
 void IntCodeMachine<TPrecision>::reset(const std::vector<tPrec>& opCode)
 {
+	std::size_t sz = opCode.size();
+	if (sz > m_opCode.size())
+		m_opCode.resize(sz);
+	else
+		wipeMemory();
+
+	std::memcpy(&m_opCode[0], &opCode[0], sz);
+
 	m_opCode = opCode;
 	m_ip = &m_opCode[0];
 	m_relBase = 0;
@@ -79,7 +88,7 @@ void IntCodeMachine<TPrecision>::execute
 		//std::cout << m_ip - &m_opCode[0] << ": ";
 		//std::cout << *m_ip << " ";
 		extractParamMode(vModes, instr, *m_ip);
-		//std::cout << vModes[0] << "," << vModes[1] << " " << *m_ip << std::endl;
+		//std::cout << vModes[0] << "," << vModes[1] << " " << vModes[2] << " " << *m_ip << std::endl;
 
 		switch (instr)
 		{
@@ -177,6 +186,13 @@ template <typename TPrecision>
 auto IntCodeMachine<TPrecision>::state() const -> State
 {
 	return m_state;
+}
+
+
+template <typename TPrecision>
+void IntCodeMachine<TPrecision>::wipeMemory()
+{
+	std::memset(&m_opCode[0], 0, m_opCode.size());
 }
 
 

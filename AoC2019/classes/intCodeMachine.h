@@ -47,6 +47,7 @@ public:
 	State state() const;
 
 private:
+	void wipeMemory();
 	void extractParamMode(std::vector<tPrec>& vModes, tPrec& instr, const tPrec& opCode);
 
 	std::vector<tPrec> m_opCode;
