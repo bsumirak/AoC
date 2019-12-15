@@ -134,8 +134,9 @@ void executeDay<14>(const std::string& fn)
 	while (requiredOre(guess, reactionMap, edOf) <= ore)
 		guess += prop;
 
+	// in no mood to implement the bisection myself :)
 	std::vector<int64_t> check(prop+1);
-	for (std::size_t i = 0; i < prop+1; ++i)
+	for (std::size_t i = 0; i < (std::size_t) prop+1; ++i)
 		check[i] = guess - prop + i;
 
 	auto cmpFct = [&] (const int64_t& fuelA, const int64_t& fuelB) -> bool
@@ -148,10 +149,10 @@ void executeDay<14>(const std::string& fn)
 		return requiredOre(fuelA, reactionMap, edOf) < requiredOre(fuelB, reactionMap, edOf);
 	};
 
-	auto solb = std::equal_range(check.begin(), check.end(), ore, cmpFct);
+	auto solb = std::upper_bound(check.begin(), check.end(), ore, cmpFct);
 
 
-	writeSolution(sola, *(solb.second)-1);
+	writeSolution(sola, *solb-1);
 }
 
 

@@ -33,11 +33,11 @@ void executeDay<12>(const std::string& fn)
 {
 	// read data
 	std::array<std::array<int, 3>, 4> pos =
-	{{ {-5, 6, -11}, {-8, -4, -2}, {1, 16, 4}, {11, 11, -4}} };
+	{{ {{-5, 6, -11}}, {{-8, -4, -2}}, {{1, 16, 4}}, {{11, 11, -4}} }};
 	std::array<std::array<int, 3>, 4> posCp = pos;
 
 	std::array<std::array<int, 3>, 4> vel =
-	{{ {0, 0, 0,}, {0, 0, 0,}, {0, 0, 0,}, {0, 0, 0} }};
+	{{ {{0, 0, 0,}}, {{0, 0, 0,}}, {{0, 0, 0,}}, {{0, 0, 0}} }};
 	std::array<std::array<int, 3>, 4> velCp = vel;
 
 	for (std::size_t i = 0; i < 1000; ++i)
