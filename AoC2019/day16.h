@@ -1,10 +1,11 @@
 /*
  * day16.h
  *
- *  Created on: 16.12.2017
+ *  Created on: 2019-12-16
  *      Author: mbreit
  */
 
+#include <cstring>
 
 struct move
 {
@@ -17,168 +18,104 @@ template <>
 void executeDay<16>(const std::string& fn)
 {
 	std::ifstream infile(fn.c_str());
-	std::vector<char> order(17);
-	for (int i = 0; i < 16; ++i)
-		order[i] = 'a' + (char) i;
+	std::vector<int> code;
+	char sign;
+	while (infile >> sign)
+		code.push_back(sign - '0');
 
-	std::vector<move> vMoves;
+	std::size_t sz = code.size();
+	std::vector<int> codeCp = code;;
+	std::vector<int> next = code;
 
-	char c;
-	while (infile.get(c))
+
+	// part a
+	for (std::size_t i = 0; i < 100; ++i)
 	{
-		switch (c)
+		for (std::size_t j = 0; j < sz; ++j)
 		{
-			case 's':
+			int sum = 0;
+
+			// +1
+			std::size_t cnt = 0;
+			std::size_t offset = 0;
+			while ((4*cnt+1)*(j+1) + offset - 1 < sz)
 			{
-				int cnt = -1;
-				size_t nS = 0;
-				while (infile.get(c) && c != ',')
-					nS += (c-'0') * std::pow(10, 1 - ++cnt);
-				if (cnt == 0)
-					nS /= 10;
-
-				vMoves.resize(vMoves.size()+1);
-				vMoves.back().type = 's';
-				vMoves.back().x1 = (char) nS;
-
-				break;
+				while (offset < j+1 && (4*cnt+1)*(j+1) + offset - 1 < sz)
+				{
+					sum += code[(4*cnt+1)*(j+1) + offset - 1];
+					++offset;
+				}
+				offset = 0;
+				++cnt;
 			}
-			case 'x':
+
+			// -1
+			cnt = 0;
+			offset = 0;
+			while ((4*cnt + 3)*(j+1) + offset - 1 < sz)
 			{
-				int cnt = -1;
-				size_t xa = 0;
-				while (infile.get(c) && c != '/')
-					xa += (c-'0') * std::pow(10, 1 - ++cnt);
-				if (cnt == 0)
-					xa /= 10;
-
-				cnt = -1;
-				size_t xb = 0;
-				while (infile.get(c) && c != ',')
-					xb += (c-'0') * std::pow(10, 1 - ++cnt);
-				if (cnt == 0)
-					xb /= 10;
-
-				vMoves.resize(vMoves.size()+1);
-				vMoves.back().type = 'x';
-				vMoves.back().x1 = (char) xa;
-				vMoves.back().x2 = (char) xb;
-
-				break;
+				while (offset < j+1 && (4*cnt + 3)*(j+1) + offset - 1 < sz)
+				{
+					sum -= code[(4*cnt+3)*(j+1) + offset - 1];
+					++offset;
+				}
+				offset = 0;
+				++cnt;
 			}
-			case 'p':
-			{
-				int cnt = 0;
-				char pa, pb;
-				infile.get(pa);
-				infile.get(pb); // slash
-				infile.get(pb);
 
-				vMoves.resize(vMoves.size()+1);
-				vMoves.back().type = 'p';
-				vMoves.back().x1 = (char) pa;
-				vMoves.back().x2 = (char) pb;
-
-				infile.get(pb); // comma
-				break;
-			}
-			default: throw;
+			next[j] = sum >= 0 ?  sum % 10 : (-sum) % 10;
 		}
+
+		code.swap(next);
 	}
 
-	std::vector<char> tmp(16);
-	std::vector<char> order1(16);
-
-	std::vector<std::vector<char> > mem;
-	mem.push_back(order);
-	size_t cycleLength = 0;
-	size_t cycleOffset;
-
-	for (size_t k = 0; k < (size_t) 1000000000; ++k)
+	int fac = 1;
+	int sola = 0;
+	for (std::size_t i = 0; i < 8; ++i)
 	{
-		for (size_t i = 0; i < vMoves.size(); ++i)
-		{
-			switch (vMoves[i].type)
-			{
-				case 's':
-				{
-					const int nS = vMoves[i].x1;
-					for (int i = 0; i < nS; ++i)
-						tmp[i] = order[16-nS+i];
-					for (int i = 0; i < 16-nS; ++i)
-						tmp[nS+i] = order[i];
-
-					tmp.swap(order);
-
-					break;
-				}
-
-				case 'x':
-				{
-					std::swap(order[vMoves[i].x1], order[vMoves[i].x2]);
-					break;
-				}
-				case 'p':
-				{
-					const char& pa = vMoves[i].x1;
-					const char& pb = vMoves[i].x2;
-
-					size_t posa = 0;
-					while (order[posa] != pa)
-						++posa;
-					size_t posb = 0;
-					while (order[posb] != pb)
-						++posb;
-
-					std::swap(order[posa], order[posb]);
-
-					break;
-				}
-				default: throw;
-			}
-		}
-
-		if (k == 0)
-			order1 = order;
-
-		// check for cycles
-		++cycleLength;
-		bool foundCycle = false;
-		for (size_t i = 0; i < cycleLength; ++i)
-		{
-			bool same = true;
-			for (size_t j = 0; j < 16; ++j)
-			{
-				if (mem[i][j] != order[j])
-				{
-					same = false;
-					break;
-				}
-			}
-			if (same)
-			{
-				foundCycle = true;
-				cycleOffset = i;
-				cycleLength -= i;
-			}
-		}
-
-		if (foundCycle)
-			break;
-
-		mem.push_back(order);
+		sola += fac * code[7-i];
+		fac *= 10;
 	}
 
-	// post-process for part a
-	order1.resize(17);
-	order1[16] = '\0';
 
-	// post-process for part b
-	size_t pos = cycleOffset + ((size_t) 1000000000 - cycleOffset) % cycleLength;
-	mem[pos].resize(17);
-	mem[pos][16] = '\0';
+	// part b
+	int f = 1;
+	std::size_t offset = 0;
+	for (std::size_t i = 0; i < 7; ++i)
+	{
+		offset += f * codeCp[6-i];
+		f *= 10;
+	}
 
-	writeSolution(&order1[0], &mem[pos][0]);
+	code.resize(10000 * sz - offset);
+	next.resize(10000 * sz - offset);
+
+	std::size_t pos = 10000 * sz - offset;
+	std::size_t cnt = 0;
+	while (pos > 0)
+		code[--pos] = codeCp[sz-1 - (cnt++) % sz];
+	sz = 10000 * sz - offset;
+
+
+	for (std::size_t i = 0; i < 100; ++i)
+	{
+		next[sz-1] = code[sz-1];
+		for (std::size_t j = sz-1; j > 0; --j)
+			next[j-1] = (next[j] + code[j-1]) % 10;
+
+		code.swap(next);
+	}
+
+	fac = 1;
+	int solb = 0;
+	for (std::size_t i = 0; i < 8; ++i)
+	{
+		solb += fac * code[7-i];
+		fac *= 10;
+	}
+
+
+	writeSolution(sola, solb);
 }
 
 
