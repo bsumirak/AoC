@@ -53,8 +53,8 @@ void writeSolution(A a, B b);
 #include "day19.h"
 #include "day20.h"
 #include "day21.h"
-/*#include "day22.h"
-#include "day23.h"
+#include "day22.h"
+/*#include "day23.h"
 #include "day24.h"
 #include "day25.h"
 */

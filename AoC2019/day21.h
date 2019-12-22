@@ -133,7 +133,69 @@ void executeDay<21>(const std::string& fn)
 		input.push_back('O');
 		input.push_back('T');
 		input.push_back(' ');
+		input.push_back('H');
+		input.push_back(' ');
+		input.push_back('J');
+		input.push_back(10);
+
+		input.push_back('N');
+		input.push_back('O');
+		input.push_back('T');
+		input.push_back(' ');
+		input.push_back('E');
+		input.push_back(' ');
+		input.push_back('T');
+		input.push_back(10);
+
 		input.push_back('A');
+		input.push_back('N');
+		input.push_back('D');
+		input.push_back(' ');
+		input.push_back('T');
+		input.push_back(' ');
+		input.push_back('J');
+		input.push_back(10);
+
+		input.push_back('N');
+		input.push_back('O');
+		input.push_back('T');
+		input.push_back(' ');
+		input.push_back('J');
+		input.push_back(' ');
+		input.push_back('J');
+		input.push_back(10);
+
+		input.push_back('N');
+		input.push_back('O');
+		input.push_back('T');
+		input.push_back(' ');
+		input.push_back('F');
+		input.push_back(' ');
+		input.push_back('T');
+		input.push_back(10);
+
+		input.push_back('O');
+		input.push_back('R');
+		input.push_back(' ');
+		input.push_back('T');
+		input.push_back(' ');
+		input.push_back('J');
+		input.push_back(10);
+
+		input.push_back('N');
+		input.push_back('O');
+		input.push_back('T');
+		input.push_back(' ');
+		input.push_back('C');
+		input.push_back(' ');
+		input.push_back('T');
+		input.push_back(10);
+
+		input.push_back('A');
+		input.push_back('N');
+		input.push_back('D');
+		input.push_back(' ');
+		input.push_back('T');
 		input.push_back(' ');
 		input.push_back('J');
 		input.push_back(10);
@@ -159,7 +221,7 @@ void executeDay<21>(const std::string& fn)
 		input.push_back('O');
 		input.push_back('T');
 		input.push_back(' ');
-		input.push_back('C');
+		input.push_back('A');
 		input.push_back(' ');
 		input.push_back('T');
 		input.push_back(10);
@@ -210,7 +272,7 @@ void executeDay<21>(const std::string& fn)
 		robot.execute(input, output);
 
 		if (output.size() == 34)
-			sola = output[33];
+			solb = output[33];
 		else
 		{
 			for (auto i : output)
