@@ -1,431 +1,518 @@
 /*
  * day18.h
  *
- *  Created on: 18.12.2017
+ *  Created on: 2019-12-18
  *      Author: mbreit
  */
+
+
+
+struct PosInfo
+{
+	std::vector<char> accessibleKeys;
+	std::vector<int> distToKeys;
+	std::vector<std::string> doorsOnPath;
+	std::vector<std::string> keysOnPath;
+	std::map<std::size_t, std::size_t> keyPos;
+};
+
+std::ostream& operator<<(std::ostream& os, const PosInfo& pi)
+{
+	const std::size_t sz = pi.accessibleKeys.size();
+	for (std::size_t i = 0; i < sz; ++i)
+	{
+		os << "accessible key: " << (char)pi.accessibleKeys[i] << " at d = "
+			<< pi.distToKeys[i] << ", required keys: " << pi.doorsOnPath[i]
+			<< ", keys on path: " << pi.keysOnPath[i] << std::endl;
+	}
+
+	return os;
+}
+
+
+void findPathToKeys
+(
+	const std::vector<std::string>& map,
+	std::vector<std::vector<int> >& searchMap,
+	const std::pair<std::size_t, std::size_t>& curPos,
+	PosInfo& posInfo
+)
+{
+	static int s = 0;
+	++s;
+
+	posInfo.accessibleKeys.clear();
+	posInfo.distToKeys.clear();
+	posInfo.doorsOnPath.clear();
+	posInfo.keysOnPath.clear();
+	posInfo.keyPos.clear();
+
+	struct PathInfo
+	{
+		PathInfo(std::size_t _r, std::size_t _c, int _l,
+			const std::string& _d, const std::string& _k) :
+			r(_r), c(_c), l(_l), d(_d), k(_k) {}
+
+		std::size_t r;
+		std::size_t c;
+		int l;
+		std::string d;
+		std::string k;
+	};
+
+	char initVal = map[curPos.first][curPos.second];
+
+	std::queue<PathInfo> q;
+	q.push(PathInfo(curPos.first, curPos.second, 0, "", ""));
+	while (!q.empty())
+	{
+		PathInfo pi = q.front();
+		q.pop();
+
+		if (searchMap[pi.r][pi.c] == s)
+			continue;
+		searchMap[pi.r][pi.c] = s;
+
+		// found a key
+		char posValue = map[pi.r][pi.c];
+		if (posValue >= 'a' && posValue <= 'z' && posValue != initVal)
+		{
+			posInfo.accessibleKeys.push_back(posValue);
+			posInfo.distToKeys.push_back(pi.l);
+			posInfo.doorsOnPath.push_back(pi.d);
+			posInfo.keysOnPath.push_back(pi.k);
+			posInfo.keyPos[posValue-'a'] = posInfo.accessibleKeys.size()-1;
+			pi.k += posValue;
+			//continue; // do not find keys that contain others in their min path
+		}
+
+		// add a door
+		if (posValue >= 'A' && posValue <= 'Z')
+			pi.d += posValue - 'A' + 'a';
+
+		// next tile
+		if (pi.r > 0)
+		{
+			posValue = map[pi.r-1][pi.c];
+			if (searchMap[pi.r-1][pi.c] != s && posValue != '#')
+				q.push(PathInfo(pi.r-1, pi.c, pi.l+1, pi.d, pi.k));
+		}
+		if (pi.r < map.size()-1)
+		{
+			posValue = map[pi.r+1][pi.c];
+			if (searchMap[pi.r+1][pi.c] != s && posValue != '#')
+			q.push(PathInfo(pi.r+1, pi.c, pi.l+1, pi.d, pi.k));
+		}
+		if (pi.c > 0)
+		{
+			posValue = map[pi.r][pi.c-1];
+			if (searchMap[pi.r][pi.c-1] != s && posValue != '#')
+			q.push(PathInfo(pi.r, pi.c-1, pi.l+1, pi.d, pi.k));
+		}
+		if (pi.c < map[0].size()-1)
+		{
+			posValue = map[pi.r][pi.c+1];
+			if (searchMap[pi.r][pi.c+1] != s && posValue != '#')
+			q.push(PathInfo(pi.r, pi.c+1, pi.l+1, pi.d, pi.k));
+		}
+	}
+}
 
 
 template <>
 void executeDay<18>(const std::string& fn)
 {
-	std::ifstream infile(fn.c_str());
-	std::string line;
+	// read input
+	std::vector<std::string> map(1);
+	{
+		std::ifstream infile(fn.c_str());
+		while (std::getline(infile, map.back()))
+			map.resize(map.size() + 1);
+		map.resize(map.size() - 1);
+	}
+	std::size_t nRows = map.size();
+	std::size_t nCols = map[0].size();
 
-	std::vector<std::string> vInstr;
-	vInstr.reserve(100);
 
-	// read data
-	while (std::getline(infile, line))
-		vInstr.push_back(line);
-	size_t sz = vInstr.size();
+	// find current position and key positions
+	std::vector<std::vector<int> > searchMap(nRows, std::vector<int>(nCols, 0));
+	typedef std::pair<std::size_t, std::size_t> Coord;
+	Coord curPos;
+	std::map<char, Coord> keyPos;
+	for (std::size_t r = 0; r < nRows; ++r)
+	{
+		for (std::size_t c = 0; c < nRows; ++c)
+		{
+			if (map[r][c] == '@')
+			{
+				curPos.first = r;
+				curPos.second = c;
+			}
+			else if (map[r][c] >= 'a' && map[r][c] <= 'z')
+				keyPos[map[r][c]] = std::make_pair(r, c);
+			else if (map[r][c] == '#')
+				searchMap[r][c] = -1;
+		}
+	}
 
 	// part a
 	int sola = -1;
+#if 0
 	{
-		std::vector<int64_t> reg(16, 0);
+		// find distances from every significant point (key or start) to every key
+		std::vector<PosInfo> posInfos(27);
+		for (char c = 'a'; c <= 'z'; ++c)
+			findPathToKeys(map, searchMap, keyPos[c], posInfos[c-'a']);
+		findPathToKeys(map, searchMap, curPos, posInfos[26]);
 
-		size_t sz = vInstr.size();
-		int pos = 0;
-		int lastFreq = 0;
-		while (pos >= 0 && pos < (int) sz)
+		for (std::size_t i = 0; i < 27; ++i)
 		{
-			std::istringstream iss(vInstr[pos]);
-			std::string instr;
-
-	//std::cout << vInstr[pos] << std::endl;
-
-			iss >> instr;
-
-
-
-
-			std::string next;
-			iss >> next;
-
-			int arg1I;
-			bool arg1IsReg = true;
-			if (next[0] - 'a' < 16 && next[0] - 'a' >= 0)
-			{
-				arg1I = next[0] - 'a';
-				arg1IsReg = true;
-			}
-			else
-			{
-				arg1I = std::stoi(next);
-				arg1IsReg = false;
-			}
-
-
-
-			int arg2I;
-			bool arg2IsReg = false;
-			if (instr != "snd" && instr != "rcv")
-			{
-				iss >> next;
-				if (next[0] - 'a' < 16 && next[0] - 'a' >= 0)
-				{
-					arg2I = next[0] - 'a';
-					arg2IsReg = true;
-				}
-				else
-				{
-					arg2I = std::stoi(next);
-					arg2IsReg = false;
-				}
-			}
-
-//std::cout << instr << " " << (arg1IsReg ? "r" : "") << arg1I << " " << (arg2IsReg ? "r" : "") << arg2I << std::endl;
-
-
-
-
-			if (instr == "snd")
-			{
-				if (arg1IsReg)
-					lastFreq = reg[arg1I];
-				else
-					lastFreq = arg1I;
-			}
-			else if (instr == "set")
-			{
-				if (arg2IsReg)
-					reg[arg1I] = reg[arg2I];
-				else
-					reg[arg1I] = arg2I;
-			}
-			else if (instr == "add")
-			{
-				if (arg2IsReg)
-					reg[arg1I] = reg[arg1I] + reg[arg2I];
-				else
-					reg[arg1I] = reg[arg1I] + arg2I;
-			}
-			else if (instr == "mul")
-			{
-				if (arg2IsReg)
-					reg[arg1I] = reg[arg1I] * reg[arg2I];
-				else
-					reg[arg1I] = reg[arg1I] * arg2I;
-			}
-			else if (instr == "mod")
-			{
-				if (arg2IsReg)
-					reg[arg1I] = reg[arg1I] % reg[arg2I];
-				else
-					reg[arg1I] = reg[arg1I] % arg2I;
-			}
-			else if (instr == "rcv")
-			{
-				if (reg[arg1I])
-				{
-					sola = lastFreq;
-					reg[arg1I] = lastFreq;
-					break;
-				}
-			}
-			else if (instr == "jgz")
-			{
-				if (arg1IsReg)
-				{
-					if (reg[arg1I] > 0)
-					{
-						if (arg2IsReg)
-							pos = pos + reg[arg2I] - 1;
-						else
-							pos = pos + arg2I - 1;
-					}
-				}
-				else
-				{
-					if (arg1I > 0)
-					{
-						if (arg2IsReg)
-							pos = pos + reg[arg2I] - 1;
-						else
-							pos = pos + arg2I - 1;
-					}
-				}
-			}
-			else throw;
-
-			++pos;
+			std::cout << "pos info for " << ('a' + i) << ":" << std::endl
+				<< posInfos[i] << std::endl;
 		}
-	}
 
+		int dist = 0;
+		int minDist = std::numeric_limits<int>::max();
+		std::vector<int> nnDist(26);
+		for (std::size_t i = 0; i < 26; ++i)
+			nnDist[i] = posInfos[i].distToKeys[0];
 
-	//part b
-	int p1SendCnt = 0;
-	{
-		std::vector<int64_t> reg0(16, 0);
-		std::vector<int64_t> reg1(16, 1);
-
-		std::queue<int64_t> q0, q1;
-
-		int pos0 = 0;
-		int pos1 = 0;
-
-		int lastFreq0 = 0;
-		int lastFreq1 = 0;
-
-		bool bWait0 = false;
-		bool bWait1 = false;
-		bool bTerm0 = false;
-		bool bTerm1 = false;
-
-		while (!bTerm0 || !bTerm1)
+		int minRemDist = 0;
+		for (std::size_t i = 0; i < 26; ++i)
 		{
-			if (!bTerm0)
+			const int keyPos = posInfos[26].accessibleKeys[i] - 'a';
+			nnDist[keyPos] = std::min(nnDist[keyPos], posInfos[26].distToKeys[i]);
+			minRemDist += nnDist[keyPos];
+		}
+
+		std::array<bool, 26> keys;
+		std::fill(keys.begin(), keys.end(), false);
+
+		struct DecisionInfo
+		{
+			std::size_t curPos;
+			std::size_t nextKeyInd;
+		};
+
+		std::stack<DecisionInfo> stack;
+		stack.push(DecisionInfo());
+		stack.top().curPos = 26;
+		stack.top().nextKeyInd = std::size_t(-1);
+
+		while (!stack.empty())
+		{
+			DecisionInfo& di = stack.top();
+			++di.nextKeyInd;
+
+			// backtracking corrections
+			if (di.nextKeyInd)
 			{
-				std::istringstream iss0(vInstr[pos0]);
-				std::string instr0, instr1;
-				iss0 >> instr0;
-				std::string arg10, arg20;
-
-				iss0 >> arg10;
-				int arg10I;
-				bool arg10IsReg = true;
-				if (arg10[0] - 'a' < 16 && arg10[0] - 'a' >= 0)
-				{
-					arg10I = arg10[0] - 'a';
-					arg10IsReg = true;
-				}
-				else
-				{
-					arg10I = std::stoi(arg10);
-					arg10IsReg = false;
-				}
-
-				int arg20I;
-				bool arg20IsReg = false;
-				if (instr0 != "snd" && instr0 != "rcv")
-				{
-					iss0 >> arg20;
-					if (arg20[0] - 'a' < 16 && arg20[0] - 'a' >= 0)
-					{
-						arg20I = arg20[0] - 'a';
-						arg20IsReg = true;
-					}
-					else
-					{
-						arg20I = std::stoi(arg20);
-						arg20IsReg = false;
-					}
-				}
-
-
-				if (instr0 == "snd")
-				{
-					if (arg10IsReg)
-						q1.push(reg0[arg10I]);
-					else
-						q1.push(arg10I);
-
-					bWait1 = false;
-				}
-				else if (instr0 == "set")
-				{
-					if (arg20IsReg)
-						reg0[arg10I] = reg0[arg20I];
-					else
-						reg0[arg10I] = arg20I;
-				}
-				else if (instr0 == "add")
-				{
-					if (arg20IsReg)
-						reg0[arg10I] = reg0[arg10I] + reg0[arg20I];
-					else
-						reg0[arg10I] = reg0[arg10I] + arg20I;
-				}
-				else if (instr0 == "mul")
-				{
-					if (arg20IsReg)
-						reg0[arg10I] = reg0[arg10I] * reg0[arg20I];
-					else
-						reg0[arg10I] = reg0[arg10I] * arg20I;
-				}
-				else if (instr0 == "mod")
-				{
-					if (arg20IsReg)
-						reg0[arg10I] = reg0[arg10I] % reg0[arg20I];
-					else
-						reg0[arg10I] = reg0[arg10I] % arg20I;
-				}
-				else if (instr0 == "rcv")
-				{
-					if (q0.size())
-					{
-						reg0[arg10I] = q0.front();
-						q0.pop();
-					}
-					else
-						bWait0 = true;
-				}
-				else if (instr0 == "jgz")
-				{
-					if (arg10IsReg)
-					{
-						if (reg0[arg10I] > 0)
-						{
-							if (arg20IsReg)
-								pos0 = pos0 + reg0[arg20I] - 1;
-							else
-								pos0 = pos0 + arg20I - 1;
-						}
-					}
-					else
-					{
-						if (arg10I > 0)
-						{
-							if (arg20IsReg)
-								pos0 = pos0 + reg0[arg20I] - 1;
-							else
-								pos0 = pos0 + arg20I - 1;
-						}
-					}
-				}
-				else throw;
-
-				if (!bWait0)
-					++pos0;
-
-				if (pos0 < 0 || pos0 >= (int) sz)
-					bTerm0 = true;
+				dist -= posInfos[di.curPos].distToKeys[di.nextKeyInd - 1];
+				keys[posInfos[di.curPos].accessibleKeys[di.nextKeyInd - 1] - 'a'] = false;
+				minRemDist += nnDist[posInfos[di.curPos].accessibleKeys[di.nextKeyInd - 1] - 'a'];
 			}
 
-
-			if (!bTerm1)
+			// find next accessible key that is not yet picked up
+			bool foundNextKey = false;
+			while (di.nextKeyInd < posInfos[di.curPos].accessibleKeys.size())
 			{
-				std::istringstream iss1(vInstr[pos1]);
-				std::string instr1;
-				iss1 >> instr1;
-				std::string arg11, arg21;
+				const char nextKey = posInfos[di.curPos].accessibleKeys[di.nextKeyInd];
 
-				iss1 >> arg11;
-				int arg11I;
-				bool arg11IsReg = true;
-				if (arg11[0] - 'a' < 16 && arg11[0] - 'a' >= 0)
+				// already picked up
+				if (keys[nextKey - 'a'])
 				{
-					arg11I = arg11[0] - 'a';
-					arg11IsReg = true;
-				}
-				else
-				{
-					arg11I = std::stoi(arg11);
-					arg11IsReg = false;
+				//	std::cout << std::string(stack.size(), ' ')
+				//		<< "Key " << nextKey << " already picked up." << std::endl;
+					++di.nextKeyInd;
+					continue;
 				}
 
-				int arg21I;
-				bool arg21IsReg = false;
-				if (instr1 != "snd" && instr1 != "rcv")
+				// check accessibility
+				const std::string& reqKeys = posInfos[di.curPos].doorsOnPath[di.nextKeyInd];
+				std::size_t sz = reqKeys.size();
+				bool accessible = true;
+				for (std::size_t c = 0; c < sz; ++c)
 				{
-					iss1 >> arg21;
-					if (arg21[0] - 'a' < 16 && arg21[0] - 'a' >= 0)
+					if (!keys[reqKeys[c] - 'a'])
 					{
-						arg21I = arg21[0] - 'a';
-						arg21IsReg = true;
-					}
-					else
-					{
-						arg21I = std::stoi(arg21);
-						arg21IsReg = false;
+					//	std::cout << std::string(stack.size(), ' ')
+					//		<< "Key " << nextKey << " not yet accessible "
+					//		<< "(missing key " << reqKeys[c] << ")." << std::endl;
+						accessible = false;
+						break;
 					}
 				}
 
-				if (instr1 == "snd")
+				if (!accessible)
 				{
-					if (arg11IsReg)
-						q0.push(reg1[arg11I]);
-					else
-						q0.push(arg11I);
+					++di.nextKeyInd;
+					continue;
+				}
 
-					bWait0 = false;
-					++p1SendCnt;
-				}
-				else if (instr1 == "set")
+				// check that minimal path does not contain another (unpicked) key
+				const std::string& betterKeys = posInfos[di.curPos].keysOnPath[di.nextKeyInd];
+				sz = betterKeys.size();
+				bool unpickedKeyOnPath = false;
+				for (std::size_t c = 0; c < sz; ++c)
 				{
-					if (arg21IsReg)
-						reg1[arg11I] = reg1[arg21I];
-					else
-						reg1[arg11I] = arg21I;
-				}
-				else if (instr1 == "add")
-				{
-					if (arg21IsReg)
-						reg1[arg11I] = reg1[arg11I] + reg1[arg21I];
-					else
-						reg1[arg11I] = reg1[arg11I] + arg21I;
-				}
-				else if (instr1 == "mul")
-				{
-					if (arg21IsReg)
-						reg1[arg11I] = reg1[arg11I] * reg1[arg21I];
-					else
-						reg1[arg11I] = reg1[arg11I] * arg21I;
-				}
-				else if (instr1 == "mod")
-				{
-					if (arg21IsReg)
-						reg1[arg11I] = reg1[arg11I] % reg1[arg21I];
-					else
-						reg1[arg11I] = reg1[arg11I] % arg21I;
-				}
-				else if (instr1 == "rcv")
-				{
-					if (q1.size())
+					if (!keys[betterKeys[c] - 'a'])
 					{
-						reg1[arg11I] = q1.front();
-						q1.pop();
-					}
-					else
-						bWait1 = true;
-				}
-				else if (instr1 == "jgz")
-				{
-					if (arg11IsReg)
-					{
-						if (reg1[arg11I] > 0)
-						{
-							if (arg21IsReg)
-								pos1 = pos1 + reg1[arg21I] - 1;
-							else
-								pos1 = pos1 + arg21I - 1;
-						}
-					}
-					else
-					{
-						if (arg11I > 0)
-						{
-							if (arg21IsReg)
-								pos1 = pos1 + reg1[arg21I] - 1;
-							else
-								pos1 = pos1 + arg21I - 1;
-						}
+					//	std::cout << std::string(stack.size(), ' ')
+					//		<< "Key " << nextKey << " not yet accessible "
+					//		<< "(missing key " << reqKeys[c] << ")." << std::endl;
+						unpickedKeyOnPath = true;
+						break;
 					}
 				}
-				else throw;
 
-				if (!bWait1)
-					++pos1;
+				if (unpickedKeyOnPath)
+				{
+					++di.nextKeyInd;
+					continue;
+				}
 
-				if (pos1 < 0 || pos1 >= (int) sz)
-					bTerm1 = true;
-			}
+				// check if distance is too large, we need not bother
+				if (dist + posInfos[di.curPos].distToKeys[di.nextKeyInd] + minRemDist
+					- nnDist[posInfos[di.curPos].accessibleKeys[di.nextKeyInd] - 'a'] >= minDist)
+				{
+				//	std::cout << std::string(stack.size(), ' ')
+				//		<< "Key " << nextKey << " too far away." << std::endl;
+
+					++di.nextKeyInd;
+					continue;
+				}
 
 
-			if ((bTerm0 && bWait1) || (bTerm1 && bWait0))
-			{
-				std::cout << "Wait while other terminated." << std::endl;
-				throw;
-			}
-
-			if (bWait0 && bWait1)
+				foundNextKey = true;
 				break;
+			}
+
+			// no more keys
+			if (!foundNextKey)
+			{
+				if (stack.size() == 27)
+				{
+					minDist = dist;
+					//std::cout << "current minDist: " << minDist << std::endl;
+				}
+				else
+				{
+				//	std::cout << std::string(stack.size(), ' ')
+				//		<< "No more keys to test." << std::endl;
+				}
+
+				stack.pop();
+				continue;
+			}
+
+			// pick up next key
+			stack.push(DecisionInfo());
+			stack.top().curPos = posInfos[di.curPos].accessibleKeys[di.nextKeyInd] - 'a';
+			stack.top().nextKeyInd = std::size_t(-1);
+			dist += posInfos[di.curPos].distToKeys[di.nextKeyInd];
+			minRemDist -= nnDist[stack.top().curPos];
+			keys[stack.top().curPos] = true;
+			//std::cout << std::string(stack.size(), ' ')
+			//	<< "Picking up key " << (char)(stack.top().curPos + 'a') << "." << std::endl;
 		}
+
+		sola = minDist;
+	}
+#endif
+
+	// part b
+	int solb = -1;
+	{
+		map[curPos.first][curPos.second] = '#';
+		map[curPos.first-1][curPos.second] = '#';
+		map[curPos.first+1][curPos.second] = '#';
+		map[curPos.first][curPos.second-1] = '#';
+		map[curPos.first][curPos.second+1] = '#';
+		Coord curPos1 = {curPos.first-1, curPos.second-1};
+		Coord curPos2 = {curPos.first-1, curPos.second+1};
+		Coord curPos3 = {curPos.first+1, curPos.second-1};
+		Coord curPos4 = {curPos.first+1, curPos.second+1};
+
+		std::map<int, std::size_t> robotForKey;
+
+		// find distances from every significant point (key or start) to every key
+		std::vector<PosInfo> posInfos(30);
+		for (char c = 'a'; c <= 'z'; ++c)
+			findPathToKeys(map, searchMap, keyPos[c], posInfos[c-'a']);
+		findPathToKeys(map, searchMap, curPos1, posInfos[26]);
+		findPathToKeys(map, searchMap, curPos2, posInfos[27]);
+		findPathToKeys(map, searchMap, curPos3, posInfos[28]);
+		findPathToKeys(map, searchMap, curPos4, posInfos[29]);
+		for (std::size_t k = 0; k < 4; ++k)
+		{
+			const std::size_t sz = posInfos[26+k].accessibleKeys.size();
+			for (std::size_t c = 0; c < sz; ++c)
+				robotForKey[posInfos[26+k].accessibleKeys[c] - 'a'] = k;
+		}
+
+		for (std::size_t i = 0; i < 30; ++i)
+		{
+			std::cout << "pos info for " << ('a' + i) << ":" << std::endl
+				<< posInfos[i] << std::endl;
+		}
+
+		int dist = 0;
+		int minDist = std::numeric_limits<int>::max();
+		std::vector<int> nnDist(26);
+		for (std::size_t i = 0; i < 26; ++i)
+			nnDist[i] = posInfos[i].distToKeys[0];
+
+		int minRemDist = 0;
+
+		for (std::size_t k = 0; k < 4; ++k)
+		{
+			for (std::size_t i = 0; i < posInfos[26+k].accessibleKeys.size(); ++i)
+			{
+				const int keyPos = posInfos[26+k].accessibleKeys[i] - 'a';
+				nnDist[keyPos] = std::min(nnDist[keyPos], posInfos[26+k].distToKeys[i]);
+				minRemDist += nnDist[keyPos];
+			}
+		}
+
+		std::array<bool, 26> keys;
+		std::fill(keys.begin(), keys.end(), false);
+
+		struct DecisionInfo
+		{
+			std::array<std::size_t, 4> curPos;
+			std::size_t nextKey;
+		};
+
+		std::stack<DecisionInfo> stack;
+		stack.push({ {{std::size_t(26), std::size_t(27),
+			std::size_t(28), std::size_t(29)}}, std::size_t(-1)});
+
+		while (!stack.empty())
+		{
+			DecisionInfo& di = stack.top();
+			++di.nextKey;
+
+			// backtracking corrections
+			if (di.nextKey)
+			{
+				const std::size_t rob = robotForKey[di.nextKey - 1];
+				const std::size_t pos = posInfos[di.curPos[rob]].keyPos[di.nextKey - 1];
+				dist -= posInfos[di.curPos[rob]].distToKeys[pos];
+				keys[di.nextKey] = false;
+				minRemDist += nnDist[di.nextKey];
+			}
+
+			// find next accessible key that is not yet picked up
+			bool foundNextKey = false;
+			while (di.nextKey < 26)
+			{
+				const std::size_t rob = robotForKey[di.nextKey];
+				const std::size_t pos = posInfos[di.curPos[rob]].keyPos[di.nextKey];
+
+				// already picked up
+				if (keys[di.nextKey])
+				{
+				//	std::cout << std::string(stack.size(), ' ')
+				//		<< "Key " << nextKey << " already picked up." << std::endl;
+					++di.nextKey;
+					continue;
+				}
+
+				// check accessibility
+				const std::string& reqKeys = posInfos[di.curPos[rob]].doorsOnPath[pos];
+				std::size_t sz = reqKeys.size();
+				bool accessible = true;
+				for (std::size_t c = 0; c < sz; ++c)
+				{
+					if (!keys[reqKeys[c] - 'a'])
+					{
+					//	std::cout << std::string(stack.size(), ' ')
+					//		<< "Key " << nextKey << " not yet accessible "
+					//		<< "(missing key " << reqKeys[c] << ")." << std::endl;
+						accessible = false;
+						break;
+					}
+				}
+
+				if (!accessible)
+				{
+					++di.nextKey;
+					continue;
+				}
+
+				// check that minimal path does not contain another (unpicked) key
+				const std::string& betterKeys = posInfos[di.curPos[rob]].keysOnPath[pos];
+				sz = betterKeys.size();
+				bool unpickedKeyOnPath = false;
+				for (std::size_t c = 0; c < sz; ++c)
+				{
+					if (!keys[betterKeys[c] - 'a'])
+					{
+					//	std::cout << std::string(stack.size(), ' ')
+					//		<< "Key " << nextKey << " not yet accessible "
+					//		<< "(missing key " << reqKeys[c] << ")." << std::endl;
+						unpickedKeyOnPath = true;
+						break;
+					}
+				}
+
+				if (unpickedKeyOnPath)
+				{
+					++di.nextKey;
+					continue;
+				}
+
+				// if distance is too large, we need not bother
+				if (dist + posInfos[di.curPos[rob]].distToKeys[pos] + minRemDist
+					- nnDist[di.nextKey] >= minDist)
+				{
+				//	std::cout << std::string(stack.size(), ' ')
+				//		<< "Key " << nextKey << " too far away." << std::endl;
+
+					++di.nextKey;
+					continue;
+				}
+
+
+				foundNextKey = true;
+				break;
+			}
+
+			// no more keys
+			if (!foundNextKey)
+			{
+				if (stack.size() == 27)
+				{
+					minDist = dist;
+					//std::cout << "current minDist: " << minDist << std::endl;
+				}
+				else
+				{
+				//	std::cout << std::string(stack.size(), ' ')
+				//		<< "No more keys to test." << std::endl;
+				}
+
+				stack.pop();
+				continue;
+			}
+
+			// pick up next key
+			const std::size_t rob = robotForKey[di.nextKey - 1];
+			const std::size_t pos = posInfos[di.curPos[rob]].keyPos[di.nextKey];
+			stack.push({di.curPos, std::size_t(-1)});
+			stack.top().curPos[rob] = di.nextKey;
+			dist += posInfos[di.curPos[rob]].distToKeys[pos];
+			minRemDist -= nnDist[di.nextKey];
+			keys[di.nextKey] = true;
+			//std::cout << std::string(stack.size(), ' ')
+			//	<< "Picking up key " << (char)(stack.top().curPos + 'a') << "." << std::endl;
+		}
+
+		solb = minDist;
 	}
 
 
-	writeSolution(sola, p1SendCnt);
+	writeSolution(sola, solb);
 }
 
 

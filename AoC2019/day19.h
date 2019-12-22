@@ -1,9 +1,33 @@
 /*
  * day19.h
  *
- *  Created on: 19.12.2017
+ *  Created on: 2019-12-19
  *      Author: mbreit
  */
+
+
+bool testPos(const std::vector<int64_t>& opCode, std::size_t x, std::size_t y)
+{
+	IntCodeMachine<int64_t> robot(opCode);
+	robot.setMemorySize(1000);
+	std::vector<int64_t> input = {int64_t (x), int64_t(y)};
+	std::vector<int64_t> output;
+	robot.execute(input, output);
+
+	return output[0] == 1;
+}
+
+
+bool fits(const std::vector<int64_t>& opCode, std::size_t x, std::size_t y)
+{
+	if (!testPos(opCode, x, y))
+		return false;
+	if (!testPos(opCode, x+99, y))
+		return false;
+	if (!testPos(opCode, x, y+99))
+		return false;
+	return true;
+}
 
 
 template <>
@@ -11,122 +35,70 @@ void executeDay<19>(const std::string& fn)
 {
 	std::ifstream infile(fn.c_str());
 
-	std::vector<std::string> path;
-	std::map<std::pair<size_t, size_t>, char> tokens;
-
-	// read labyrinth
-	std::string line;
-	while (std::getline(infile, line))
-		path.push_back(line);
-
-
-	// step through
-	std::string sola = "";
-	size_t nStep = 1;
-
-	// find entrance
-	size_t i = 0;
-	size_t j = 0;
-	for (; j < path[i].size(); ++j)
-		if (path[i][j] == '|')
-			break;
-
-	int comingFrom = 1;
-	while (true)
+	// read program
+	std::vector<int64_t> opCode;
 	{
-		while (path[i][j] != '+')
-		{
-			if (path[i][j] == ' ')
-			{
-				//std::cout << "Path ended in space." << std::endl;
-				--nStep;
-				goto exitLabyrinth;
-			}
-
-			if (path[i][j] != '|' && path[i][j] != '-')
-				sola += path[i][j];
-
-			switch (comingFrom)
-			{
-				case 1: ++i; break;
-				case 2: --j; break;
-				case 3: --i; break;
-				case 4: ++j;
-			}
-
-			++nStep;
-
-			if (i == (size_t)-1 || i >= path.size() || j == (size_t)-1 || j >= path[i].size())
-			{
-				//std::cout << "Path ended in boundary." << std::endl;
-				goto exitLabyrinth;
-			}
-		}
-
-		// we hit a '+' - find possible directions to continue
-		size_t it = i;
-		size_t jt = j;
-		if (comingFrom == 1 || comingFrom == 3)
-		{
-			while (jt < path[it].size() - 1 && path[i][++jt] == '|')
-				;
-			if (path[i][jt] != ' ' && path[i][jt] != '|')
-			{
-				nStep += jt-j;
-				j = jt;
-				comingFrom = 4;
-			}
-			else
-			{
-				jt = j;
-				while (jt != 0 && path[i][--jt] == '|')
-					;
-				if (path[i][jt] != ' ' && path[i][jt] != '|')
-				{
-					nStep += j-jt;
-					j = jt;
-					comingFrom = 2;
-				}
-				else
-				{
-					//std::cout << "Path ended in +, coming from " << comingFrom << "." << std::endl;
-					goto exitLabyrinth;
-				}
-			}
-		}
-		else
-		{
-			while (it < path.size() - 1 && path[++it][j] == '-')
-				;
-			if (path[it][j] != ' ' && path[it][jt] != '-')
-			{
-				nStep += it-i;
-				i = it;
-				comingFrom = 1;
-			}
-			else
-			{
-				it = i;
-				while (it != 0 && path[--it][jt] == '-')
-					;
-				if (path[it][jt] != ' ' && path[it][jt] != '-')
-				{
-					nStep += i-it;
-					i = it;
-					comingFrom = 3;
-				}
-				else
-				{
-					//std::cout << "Path ended in +, coming from " << comingFrom << "." << std::endl;
-					goto exitLabyrinth;
-				}
-			}
-		}
+		std::ifstream infile(fn.c_str());
+		int64_t id;
+		while (infile >> id)
+			opCode.push_back(id);
 	}
 
-exitLabyrinth:
 
-	writeSolution(sola, nStep);
+	// part a
+	int sola = 0;
+	for (std::size_t y = 0; y < 50; ++y)
+		for (std::size_t x = 0; x < 50; ++x)
+			if (testPos(opCode, x, y))
+				++sola;
+
+
+	// part b
+	std::size_t y = 100;
+	std::size_t x = 0;
+	while (!testPos(opCode, x, y))
+		++x;
+	std::size_t x1 = x+1;  // safety
+
+	while (testPos(opCode, x, y))
+		++x;
+	std::size_t x2 = x-1;  // safety
+
+	y = (100 * (100 + x1)) / (x2 - x1);
+	x = (x2*y) / 100 - 100;
+
+	bool goOn = true;
+	while (goOn)
+	{
+		goOn = false;
+
+		if (fits(opCode, x, y-1))
+		{
+			goOn = true;
+			--y;
+		}
+
+		if (fits(opCode, x-1, y))
+		{
+			goOn = true;
+			--x;
+		}
+
+
+		if (fits(opCode, x-1, y-1))
+		{
+			goOn = true;
+			--x;
+			--y;
+		}
+
+		if (!goOn)
+			break;
+	}
+
+	std::size_t solb = 10000*x + y;
+
+	writeSolution(sola, solb);
 }
 
 
