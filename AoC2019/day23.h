@@ -1,7 +1,7 @@
 /*
  * day23.h
  *
- *  Created on: 23.12.2017
+ *  Created on: 2019-12-23
  *      Author: mbreit
  */
 
@@ -11,152 +11,123 @@ void executeDay<23>(const std::string& fn)
 {
 	std::ifstream infile(fn.c_str());
 
-	std::string line;
+	// read program
+	std::vector<int64_t> opCode;
+	{
+		std::ifstream infile(fn.c_str());
+		int64_t id;
+		while (infile >> id)
+			opCode.push_back(id);
+	}
 
-	std::vector<std::string> vInstr;
-	vInstr.reserve(1000);
+	std::vector<IntCodeMachine<int64_t> > icm(50, opCode);
+	std::vector<std::vector<int64_t> > input(50);
+	std::vector<std::vector<int64_t> > output(50);
+	for (std::size_t i = 0; i < 50; ++i)
+	{
+		icm[i].setMemorySize(100000);
+		input[i].push_back(i);
+	}
 
-	// read data
-	while (std::getline(infile, line))
-		vInstr.push_back(line);
-	size_t sz = vInstr.size();
 
 	// part a
-	int sola = 0;
+	int64_t sola = -1;
+	while (true)
 	{
-		std::vector<int64_t> reg(8, 0);
-
-		size_t sz = vInstr.size();
-		int pos = 0;
-		int lastFreq = 0;
-		while (pos >= 0 && pos < (int) sz)
+		bool doBreak = false;
+		for (std::size_t i = 0; i < 50; ++i)
 		{
-			std::istringstream iss(vInstr[pos]);
-			std::string instr;
+			if (!input[i].size())
+				input[i].push_back(-1);
+			output[i].clear();
+			icm[i].execute(input[i], output[i]);
+			input[i].clear();
 
-	//std::cout << vInstr[pos] << std::endl;
-
-			iss >> instr;
-
-
-
-
-			std::string next;
-			iss >> next;
-
-			int arg1I;
-			bool arg1IsReg = true;
-			if (next[0] - 'a' < 8 && next[0] - 'a' >= 0)
+			const std::size_t oSz = output[i].size();
+			for (std::size_t j = 0; j < oSz; j += 3)
 			{
-				arg1I = next[0] - 'a';
-				arg1IsReg = true;
-			}
-			else
-			{
-				arg1I = std::stoi(next);
-				arg1IsReg = false;
-			}
-
-
-
-			int arg2I;
-			bool arg2IsReg = false;
-			iss >> next;
-			if (next[0] - 'a' < 8 && next[0] - 'a' >= 0)
-			{
-				arg2I = next[0] - 'a';
-				arg2IsReg = true;
-			}
-			else
-			{
-				arg2I = std::stoi(next);
-				arg2IsReg = false;
-			}
-
-//std::cout << instr << " " << (arg1IsReg ? "r" : "") << arg1I << " " << (arg2IsReg ? "r" : "") << arg2I << std::endl;
-
-
-
-
-			if (instr == "set")
-			{
-				if (arg2IsReg)
-					reg[arg1I] = reg[arg2I];
-				else
-					reg[arg1I] = arg2I;
-			}
-			else if (instr == "sub")
-			{
-				if (arg2IsReg)
-					reg[arg1I] = reg[arg1I] - reg[arg2I];
-				else
-					reg[arg1I] = reg[arg1I] - arg2I;
-			}
-			else if (instr == "mul")
-			{
-				if (arg2IsReg)
-					reg[arg1I] = reg[arg1I] * reg[arg2I];
-				else
-					reg[arg1I] = reg[arg1I] * arg2I;
-
-				++sola;
-			}
-			else if (instr == "jnz")
-			{
-				if (arg1IsReg)
+				if (output[i][j] == int64_t(255))
 				{
-					if (reg[arg1I] != 0)
-					{
-						if (arg2IsReg)
-							pos = pos + reg[arg2I] - 1;
-						else
-							pos = pos + arg2I - 1;
-					}
+					sola = output[i][j+2];
+					doBreak = true;
+					break;
 				}
-				else
-				{
-					if (arg1I != 0)
-					{
-						if (arg2IsReg)
-							pos = pos + reg[arg2I] - 1;
-						else
-							pos = pos + arg2I - 1;
-					}
-				}
-			}
-			else throw;
 
-			++pos;
+				input[output[i][j]].push_back(output[i][j+1]);
+				input[output[i][j]].push_back(output[i][j+2]);
+			}
 		}
+		if (doBreak)
+			break;
 	}
 
-	// part b: find non-prime numbers in [108100, 125100]
-	int last = 354;
-	std::vector<bool> sieve(355, true);
-	std::vector<bool> zone(17001, true);
-	for (int i = 2; i <= last; ++i)
+
+	// part b
+	for (std::size_t i = 0; i < 50; ++i)
 	{
-		if (!sieve[i])
-			continue;
-
-		// shoot in sieve
-		for (int j = 2*i; j <= last; j += i)
-			sieve[j] = false;
-
-		// shoot in zone
-		int rest = 108100 % i;
-		int start = (i - rest) % i;
-
-		for (int j = start; j < 17001; j += i)
-			zone[j] = false;
+		icm[i].reset(opCode);
+		input[i].clear();
+		input[i].push_back(i);
 	}
 
-	size_t cnt = 0;
-	for (size_t i = 0; i < 17001; i += 17)
-		if (!zone[i])
-			++cnt;
+	int64_t solb = -1;
+	std::pair<int64_t, int64_t> natData = {0, 0};
+	while (true)
+	{
+		bool doBreak = false;
+		for (std::size_t i = 0; i < 50; ++i)
+		{
+			if (!input[i].size())
+				input[i].push_back(-1);
+			output[i].clear();
+			icm[i].execute(input[i], output[i]);
+			input[i].clear();
 
-	writeSolution(sola, cnt);
+			const std::size_t oSz = output[i].size();
+			for (std::size_t j = 0; j < oSz; j += 3)
+			{
+				if (output[i][j] == int64_t(255))
+				{
+					natData.first = output[i][j+1];
+					natData.second = output[i][j+2];
+					doBreak = true;
+				}
+				else
+				{
+					input[output[i][j]].push_back(output[i][j+1]);
+					input[output[i][j]].push_back(output[i][j+2]);
+				}
+			}
+		}
+
+		if (doBreak)
+		{
+			doBreak = false;
+			bool doSend = true;
+			for (std::size_t i = 0; i < 50; ++i)
+			{
+				if (input[i].size())
+				{
+					doSend = false;
+					break;
+				}
+			}
+			if (doSend)
+			{
+				if (solb == natData.second)
+					doBreak = true;
+				solb = natData.second;
+				input[0].push_back(natData.first);
+				input[0].push_back(natData.second);
+			}
+		}
+
+		if (doBreak)
+			break;
+	}
+
+
+	writeSolution(sola, solb);
 }
 
 
