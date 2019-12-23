@@ -119,6 +119,172 @@ void findPathToKeys
 }
 
 
+template <int NRobots>
+int findShortestPathToAllKeys
+(
+	const std::vector<std::string>& map,
+	std::vector<std::vector<int> >& searchMap,
+	const std::map<char, std::pair<std::size_t, std::size_t> >& keyPos,
+	const std::array<std::pair<std::size_t, std::size_t>, NRobots>& curPos
+)
+{
+	const std::size_t nKeys = keyPos.size();
+	std::vector<std::size_t> robotForKey(nKeys);
+
+	// find distances from every significant point (key or start) to every key
+	std::vector<PosInfo> posInfos(nKeys + NRobots);
+	for (auto it = keyPos.begin(); it != keyPos.end(); ++it)
+		findPathToKeys(map, searchMap, it->second, posInfos[it->first-'a']);
+	for (std::size_t i = 0; i < NRobots; ++i)
+		findPathToKeys(map, searchMap, curPos[i], posInfos[nKeys+i]);
+
+	for (std::size_t k = 0; k < NRobots; ++k)
+	{
+		const std::size_t sz = posInfos[nKeys+k].accessibleKeys.size();
+		for (std::size_t c = 0; c < sz; ++c)
+			robotForKey[posInfos[nKeys+k].accessibleKeys[c] - 'a'] = k;
+	}
+
+	int dist = 0;
+	int minDist = std::numeric_limits<int>::max();
+	std::vector<int> nnDist(nKeys, 0);
+	for (std::size_t i = 0; i < nKeys; ++i)
+		if (posInfos[i].distToKeys.size())
+			nnDist[i] = posInfos[i].distToKeys[0];
+
+	// calculate minimum remaining start dist and all minimal dists
+	int minRemDist = 0;
+
+	for (std::size_t k = 0; k < NRobots; ++k)
+	{
+		for (std::size_t i = 0; i < posInfos[nKeys+k].accessibleKeys.size(); ++i)
+		{
+			const int keyPos = posInfos[nKeys+k].accessibleKeys[i] - 'a';
+			nnDist[keyPos] = std::min(nnDist[keyPos], posInfos[nKeys+k].distToKeys[i]);
+			minRemDist += nnDist[keyPos];
+		}
+	}
+
+	std::vector<bool> keys(nKeys, false);
+
+	struct DecisionInfo
+	{
+		std::array<std::size_t, NRobots> curPos;
+		std::size_t nextKey;
+	};
+
+	std::stack<DecisionInfo> stack;
+
+	std::array<std::size_t, NRobots> startPos;
+	for (std::size_t i = 0; i < NRobots; ++i)
+		startPos[i] = nKeys + i;
+	stack.push({startPos, std::size_t(-1)});
+
+	while (!stack.empty())
+	{
+		DecisionInfo& di = stack.top();
+		++di.nextKey;
+
+		// backtracking corrections
+		if (di.nextKey)
+		{
+			const std::size_t rob = robotForKey[di.nextKey - 1];
+			const std::size_t pos = posInfos[di.curPos[rob]].keyPos[di.nextKey - 1];
+			dist -= posInfos[di.curPos[rob]].distToKeys[pos];
+			keys[di.nextKey-1] = false;
+			minRemDist += nnDist[di.nextKey-1];
+		}
+
+		// find next accessible key that is not yet picked up
+		bool foundNextKey = false;
+		while (di.nextKey < nKeys)
+		{
+			const std::size_t rob = robotForKey[di.nextKey];
+			const std::size_t pos = posInfos[di.curPos[rob]].keyPos[di.nextKey];
+
+			// already picked up
+			if (keys[di.nextKey])
+			{
+				++di.nextKey;
+				continue;
+			}
+
+			// check accessibility
+			const std::string& reqKeys = posInfos[di.curPos[rob]].doorsOnPath[pos];
+			std::size_t sz = reqKeys.size();
+			bool accessible = true;
+			for (std::size_t c = 0; c < sz; ++c)
+			{
+				if (!keys[reqKeys[c] - 'a'])
+				{
+					accessible = false;
+					break;
+				}
+			}
+
+			if (!accessible)
+			{
+				++di.nextKey;
+				continue;
+			}
+
+			// check that minimal path does not contain another (unpicked) key
+			const std::string& betterKeys = posInfos[di.curPos[rob]].keysOnPath[pos];
+			sz = betterKeys.size();
+			bool unpickedKeyOnPath = false;
+			for (std::size_t c = 0; c < sz; ++c)
+			{
+				if (!keys[betterKeys[c] - 'a'])
+				{
+					unpickedKeyOnPath = true;
+					break;
+				}
+			}
+
+			if (unpickedKeyOnPath)
+			{
+				++di.nextKey;
+				continue;
+			}
+
+			// if distance is too large, we need not bother
+			if (dist + posInfos[di.curPos[rob]].distToKeys[pos] + minRemDist
+				- nnDist[di.nextKey] >= minDist)
+			{
+				++di.nextKey;
+				continue;
+			}
+
+
+			foundNextKey = true;
+			break;
+		}
+
+		// no more keys
+		if (!foundNextKey)
+		{
+			if (stack.size() == nKeys+1)
+				minDist = dist;
+
+			stack.pop();
+			continue;
+		}
+
+		// pick up next key
+		const std::size_t rob = robotForKey[di.nextKey];
+		const std::size_t pos = posInfos[di.curPos[rob]].keyPos[di.nextKey];
+		stack.push({di.curPos, std::size_t(-1)});
+		stack.top().curPos[rob] = di.nextKey;
+		dist += posInfos[di.curPos[rob]].distToKeys[pos];
+		minRemDist -= nnDist[di.nextKey];
+		keys[di.nextKey] = true;
+	}
+
+	return minDist;
+}
+
+
+
 template <>
 void executeDay<18>(const std::string& fn)
 {
@@ -141,7 +307,7 @@ void executeDay<18>(const std::string& fn)
 	std::map<char, Coord> keyPos;
 	for (std::size_t r = 0; r < nRows; ++r)
 	{
-		for (std::size_t c = 0; c < nRows; ++c)
+		for (std::size_t c = 0; c < nCols; ++c)
 		{
 			if (map[r][c] == '@')
 			{
@@ -157,168 +323,11 @@ void executeDay<18>(const std::string& fn)
 
 	// part a
 	int sola = -1;
-#if 0
 	{
-		// find distances from every significant point (key or start) to every key
-		std::vector<PosInfo> posInfos(27);
-		for (char c = 'a'; c <= 'z'; ++c)
-			findPathToKeys(map, searchMap, keyPos[c], posInfos[c-'a']);
-		findPathToKeys(map, searchMap, curPos, posInfos[26]);
+		std::array<Coord, 1> curPosAll = {{ curPos }};
 
-		for (std::size_t i = 0; i < 27; ++i)
-		{
-			std::cout << "pos info for " << ('a' + i) << ":" << std::endl
-				<< posInfos[i] << std::endl;
-		}
-
-		int dist = 0;
-		int minDist = std::numeric_limits<int>::max();
-		std::vector<int> nnDist(26);
-		for (std::size_t i = 0; i < 26; ++i)
-			nnDist[i] = posInfos[i].distToKeys[0];
-
-		int minRemDist = 0;
-		for (std::size_t i = 0; i < 26; ++i)
-		{
-			const int keyPos = posInfos[26].accessibleKeys[i] - 'a';
-			nnDist[keyPos] = std::min(nnDist[keyPos], posInfos[26].distToKeys[i]);
-			minRemDist += nnDist[keyPos];
-		}
-
-		std::array<bool, 26> keys;
-		std::fill(keys.begin(), keys.end(), false);
-
-		struct DecisionInfo
-		{
-			std::size_t curPos;
-			std::size_t nextKeyInd;
-		};
-
-		std::stack<DecisionInfo> stack;
-		stack.push(DecisionInfo());
-		stack.top().curPos = 26;
-		stack.top().nextKeyInd = std::size_t(-1);
-
-		while (!stack.empty())
-		{
-			DecisionInfo& di = stack.top();
-			++di.nextKeyInd;
-
-			// backtracking corrections
-			if (di.nextKeyInd)
-			{
-				dist -= posInfos[di.curPos].distToKeys[di.nextKeyInd - 1];
-				keys[posInfos[di.curPos].accessibleKeys[di.nextKeyInd - 1] - 'a'] = false;
-				minRemDist += nnDist[posInfos[di.curPos].accessibleKeys[di.nextKeyInd - 1] - 'a'];
-			}
-
-			// find next accessible key that is not yet picked up
-			bool foundNextKey = false;
-			while (di.nextKeyInd < posInfos[di.curPos].accessibleKeys.size())
-			{
-				const char nextKey = posInfos[di.curPos].accessibleKeys[di.nextKeyInd];
-
-				// already picked up
-				if (keys[nextKey - 'a'])
-				{
-				//	std::cout << std::string(stack.size(), ' ')
-				//		<< "Key " << nextKey << " already picked up." << std::endl;
-					++di.nextKeyInd;
-					continue;
-				}
-
-				// check accessibility
-				const std::string& reqKeys = posInfos[di.curPos].doorsOnPath[di.nextKeyInd];
-				std::size_t sz = reqKeys.size();
-				bool accessible = true;
-				for (std::size_t c = 0; c < sz; ++c)
-				{
-					if (!keys[reqKeys[c] - 'a'])
-					{
-					//	std::cout << std::string(stack.size(), ' ')
-					//		<< "Key " << nextKey << " not yet accessible "
-					//		<< "(missing key " << reqKeys[c] << ")." << std::endl;
-						accessible = false;
-						break;
-					}
-				}
-
-				if (!accessible)
-				{
-					++di.nextKeyInd;
-					continue;
-				}
-
-				// check that minimal path does not contain another (unpicked) key
-				const std::string& betterKeys = posInfos[di.curPos].keysOnPath[di.nextKeyInd];
-				sz = betterKeys.size();
-				bool unpickedKeyOnPath = false;
-				for (std::size_t c = 0; c < sz; ++c)
-				{
-					if (!keys[betterKeys[c] - 'a'])
-					{
-					//	std::cout << std::string(stack.size(), ' ')
-					//		<< "Key " << nextKey << " not yet accessible "
-					//		<< "(missing key " << reqKeys[c] << ")." << std::endl;
-						unpickedKeyOnPath = true;
-						break;
-					}
-				}
-
-				if (unpickedKeyOnPath)
-				{
-					++di.nextKeyInd;
-					continue;
-				}
-
-				// check if distance is too large, we need not bother
-				if (dist + posInfos[di.curPos].distToKeys[di.nextKeyInd] + minRemDist
-					- nnDist[posInfos[di.curPos].accessibleKeys[di.nextKeyInd] - 'a'] >= minDist)
-				{
-				//	std::cout << std::string(stack.size(), ' ')
-				//		<< "Key " << nextKey << " too far away." << std::endl;
-
-					++di.nextKeyInd;
-					continue;
-				}
-
-
-				foundNextKey = true;
-				break;
-			}
-
-			// no more keys
-			if (!foundNextKey)
-			{
-				if (stack.size() == 27)
-				{
-					minDist = dist;
-					//std::cout << "current minDist: " << minDist << std::endl;
-				}
-				else
-				{
-				//	std::cout << std::string(stack.size(), ' ')
-				//		<< "No more keys to test." << std::endl;
-				}
-
-				stack.pop();
-				continue;
-			}
-
-			// pick up next key
-			stack.push(DecisionInfo());
-			stack.top().curPos = posInfos[di.curPos].accessibleKeys[di.nextKeyInd] - 'a';
-			stack.top().nextKeyInd = std::size_t(-1);
-			dist += posInfos[di.curPos].distToKeys[di.nextKeyInd];
-			minRemDist -= nnDist[stack.top().curPos];
-			keys[stack.top().curPos] = true;
-			//std::cout << std::string(stack.size(), ' ')
-			//	<< "Picking up key " << (char)(stack.top().curPos + 'a') << "." << std::endl;
-		}
-
-		sola = minDist;
+		sola = findShortestPathToAllKeys<1>(map, searchMap, keyPos, curPosAll);
 	}
-#endif
 
 	// part b
 	int solb = -1;
@@ -328,187 +337,15 @@ void executeDay<18>(const std::string& fn)
 		map[curPos.first+1][curPos.second] = '#';
 		map[curPos.first][curPos.second-1] = '#';
 		map[curPos.first][curPos.second+1] = '#';
-		Coord curPos1 = {curPos.first-1, curPos.second-1};
-		Coord curPos2 = {curPos.first-1, curPos.second+1};
-		Coord curPos3 = {curPos.first+1, curPos.second-1};
-		Coord curPos4 = {curPos.first+1, curPos.second+1};
 
-		std::map<int, std::size_t> robotForKey;
+		std::array<Coord, 4> curPosAll = {{
+			{curPos.first-1, curPos.second-1},
+			{curPos.first-1, curPos.second+1},
+			{curPos.first+1, curPos.second-1},
+			{curPos.first+1, curPos.second+1}
+		}};
 
-		// find distances from every significant point (key or start) to every key
-		std::vector<PosInfo> posInfos(30);
-		for (char c = 'a'; c <= 'z'; ++c)
-			findPathToKeys(map, searchMap, keyPos[c], posInfos[c-'a']);
-		findPathToKeys(map, searchMap, curPos1, posInfos[26]);
-		findPathToKeys(map, searchMap, curPos2, posInfos[27]);
-		findPathToKeys(map, searchMap, curPos3, posInfos[28]);
-		findPathToKeys(map, searchMap, curPos4, posInfos[29]);
-		for (std::size_t k = 0; k < 4; ++k)
-		{
-			const std::size_t sz = posInfos[26+k].accessibleKeys.size();
-			for (std::size_t c = 0; c < sz; ++c)
-				robotForKey[posInfos[26+k].accessibleKeys[c] - 'a'] = k;
-		}
-
-		for (std::size_t i = 0; i < 30; ++i)
-		{
-			std::cout << "pos info for " << ('a' + i) << ":" << std::endl
-				<< posInfos[i] << std::endl;
-		}
-
-		int dist = 0;
-		int minDist = std::numeric_limits<int>::max();
-		std::vector<int> nnDist(26);
-		for (std::size_t i = 0; i < 26; ++i)
-			nnDist[i] = posInfos[i].distToKeys[0];
-
-		int minRemDist = 0;
-
-		for (std::size_t k = 0; k < 4; ++k)
-		{
-			for (std::size_t i = 0; i < posInfos[26+k].accessibleKeys.size(); ++i)
-			{
-				const int keyPos = posInfos[26+k].accessibleKeys[i] - 'a';
-				nnDist[keyPos] = std::min(nnDist[keyPos], posInfos[26+k].distToKeys[i]);
-				minRemDist += nnDist[keyPos];
-			}
-		}
-
-		std::array<bool, 26> keys;
-		std::fill(keys.begin(), keys.end(), false);
-
-		struct DecisionInfo
-		{
-			std::array<std::size_t, 4> curPos;
-			std::size_t nextKey;
-		};
-
-		std::stack<DecisionInfo> stack;
-		stack.push({ {{std::size_t(26), std::size_t(27),
-			std::size_t(28), std::size_t(29)}}, std::size_t(-1)});
-
-		while (!stack.empty())
-		{
-			DecisionInfo& di = stack.top();
-			++di.nextKey;
-
-			// backtracking corrections
-			if (di.nextKey)
-			{
-				const std::size_t rob = robotForKey[di.nextKey - 1];
-				const std::size_t pos = posInfos[di.curPos[rob]].keyPos[di.nextKey - 1];
-				dist -= posInfos[di.curPos[rob]].distToKeys[pos];
-				keys[di.nextKey] = false;
-				minRemDist += nnDist[di.nextKey];
-			}
-
-			// find next accessible key that is not yet picked up
-			bool foundNextKey = false;
-			while (di.nextKey < 26)
-			{
-				const std::size_t rob = robotForKey[di.nextKey];
-				const std::size_t pos = posInfos[di.curPos[rob]].keyPos[di.nextKey];
-
-				// already picked up
-				if (keys[di.nextKey])
-				{
-				//	std::cout << std::string(stack.size(), ' ')
-				//		<< "Key " << nextKey << " already picked up." << std::endl;
-					++di.nextKey;
-					continue;
-				}
-
-				// check accessibility
-				const std::string& reqKeys = posInfos[di.curPos[rob]].doorsOnPath[pos];
-				std::size_t sz = reqKeys.size();
-				bool accessible = true;
-				for (std::size_t c = 0; c < sz; ++c)
-				{
-					if (!keys[reqKeys[c] - 'a'])
-					{
-					//	std::cout << std::string(stack.size(), ' ')
-					//		<< "Key " << nextKey << " not yet accessible "
-					//		<< "(missing key " << reqKeys[c] << ")." << std::endl;
-						accessible = false;
-						break;
-					}
-				}
-
-				if (!accessible)
-				{
-					++di.nextKey;
-					continue;
-				}
-
-				// check that minimal path does not contain another (unpicked) key
-				const std::string& betterKeys = posInfos[di.curPos[rob]].keysOnPath[pos];
-				sz = betterKeys.size();
-				bool unpickedKeyOnPath = false;
-				for (std::size_t c = 0; c < sz; ++c)
-				{
-					if (!keys[betterKeys[c] - 'a'])
-					{
-					//	std::cout << std::string(stack.size(), ' ')
-					//		<< "Key " << nextKey << " not yet accessible "
-					//		<< "(missing key " << reqKeys[c] << ")." << std::endl;
-						unpickedKeyOnPath = true;
-						break;
-					}
-				}
-
-				if (unpickedKeyOnPath)
-				{
-					++di.nextKey;
-					continue;
-				}
-
-				// if distance is too large, we need not bother
-				if (dist + posInfos[di.curPos[rob]].distToKeys[pos] + minRemDist
-					- nnDist[di.nextKey] >= minDist)
-				{
-				//	std::cout << std::string(stack.size(), ' ')
-				//		<< "Key " << nextKey << " too far away." << std::endl;
-
-					++di.nextKey;
-					continue;
-				}
-
-
-				foundNextKey = true;
-				break;
-			}
-
-			// no more keys
-			if (!foundNextKey)
-			{
-				if (stack.size() == 27)
-				{
-					minDist = dist;
-					//std::cout << "current minDist: " << minDist << std::endl;
-				}
-				else
-				{
-				//	std::cout << std::string(stack.size(), ' ')
-				//		<< "No more keys to test." << std::endl;
-				}
-
-				stack.pop();
-				continue;
-			}
-
-			// pick up next key
-			const std::size_t rob = robotForKey[di.nextKey - 1];
-			const std::size_t pos = posInfos[di.curPos[rob]].keyPos[di.nextKey];
-			stack.push({di.curPos, std::size_t(-1)});
-			stack.top().curPos[rob] = di.nextKey;
-			dist += posInfos[di.curPos[rob]].distToKeys[pos];
-			minRemDist -= nnDist[di.nextKey];
-			keys[di.nextKey] = true;
-			//std::cout << std::string(stack.size(), ' ')
-			//	<< "Picking up key " << (char)(stack.top().curPos + 'a') << "." << std::endl;
-		}
-
-		solb = minDist;
+		solb = findShortestPathToAllKeys<4>(map, searchMap, keyPos, curPosAll);
 	}
 
 
