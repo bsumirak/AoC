@@ -5,6 +5,8 @@
  *      Author: mbreit
  */
 
+#include "classes/intCodeMachine.h"
+
 
 bool testPos(const std::vector<int64_t>& opCode, std::size_t x, std::size_t y)
 {

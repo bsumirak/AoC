@@ -6,6 +6,7 @@
  */
 
 #include <algorithm>
+#include "classes/intCodeMachine.h"
 
 
 template <>
@@ -106,9 +107,6 @@ void executeDay<21>(const std::string& fn)
 		input.push_back('L');
 		input.push_back('K');
 		input.push_back(10);
-
-		for (auto i : input)
-			std::cout << char(i);
 
 		robot.execute(input, output);
 
@@ -265,9 +263,6 @@ void executeDay<21>(const std::string& fn)
 		input.push_back('U');
 		input.push_back('N');
 		input.push_back(10);
-
-		for (auto i : input)
-			std::cout << char(i);
 
 		robot.execute(input, output);
 

@@ -5,6 +5,8 @@
  *      Author: mbreit
  */
 
+#include "classes/intCodeMachine.h"
+
 
 template <>
 void executeDay<23>(const std::string& fn)
