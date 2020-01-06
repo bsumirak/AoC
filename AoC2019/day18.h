@@ -13,7 +13,7 @@ struct PosInfo
 	std::vector<int> distToKeys;
 	std::vector<std::string> doorsOnPath;
 	std::vector<std::string> keysOnPath;
-	std::map<std::size_t, std::size_t> keyPos;
+	std::array<std::size_t, 26> keyPos;
 };
 
 std::ostream& operator<<(std::ostream& os, const PosInfo& pi)
@@ -45,7 +45,6 @@ void findPathToKeys
 	posInfo.distToKeys.clear();
 	posInfo.doorsOnPath.clear();
 	posInfo.keysOnPath.clear();
-	posInfo.keyPos.clear();
 
 	struct PathInfo
 	{
