@@ -34,8 +34,8 @@ void writeSolution(A a, B b);
 
 #include "day01.h"
 #include "day02.h"
-#if 0
 #include "day03.h"
+#if 0
 #include "day04.h"
 #include "day05.h"
 #include "day06.h"
