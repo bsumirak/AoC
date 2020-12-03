@@ -13,8 +13,8 @@ void executeDay<3>(const std::string& fn)
 	std::ifstream infile(fn.c_str());
 	std::vector<std::string> lines;
 	std::string line;
-	while (std::getline(infile, line))
-		lines.push_back(line);
+	while (infile >> line)
+		lines.emplace_back(line);
 	std::size_t sz = lines.size();
 	std::size_t nCols = lines[0].size();
 
