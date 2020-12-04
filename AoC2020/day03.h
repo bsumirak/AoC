@@ -10,13 +10,16 @@ template <>
 void executeDay<3>(const std::string& fn)
 {
 	// read input
-	std::ifstream infile(fn.c_str());
 	std::vector<std::string> lines;
-	std::string line;
-	while (infile >> line)
-		lines.emplace_back(line);
-	std::size_t sz = lines.size();
-	std::size_t nCols = lines[0].size();
+	{
+		std::ifstream infile(fn.c_str());
+		std::string line;
+		while (infile >> line)
+			lines.emplace_back(line);
+		infile.close();
+	}
+	const std::size_t sz = lines.size();
+	const std::size_t nCols = lines[0].size();
 
 
 	// part a
@@ -48,6 +51,7 @@ void executeDay<3>(const std::string& fn)
 		}
 		resB *= tmp;
 	}
+
 
 	writeSolution(resA, resB);
 }
