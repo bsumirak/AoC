@@ -38,8 +38,8 @@ void writeSolution(A a, B b);
 #include "day03.h"
 #include "day04.h"
 #include "day05.h"
-#if 0
 #include "day06.h"
+#if 0
 #include "day07.h"
 #include "day08.h"
 #include "day09.h"
