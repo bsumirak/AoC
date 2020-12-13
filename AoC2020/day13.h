@@ -30,9 +30,9 @@ haveResA:
 	// part b
 	std::vector<int64_t> offsets = {0, 3, 13, 25, 30, 42, 44, 50, 67};
 
-	int64_t resB = busIDs[0];
-	int64_t fac = resB;
-	for (int j = 1; j < 9; ++j)
+	int64_t resB = 0;
+	int64_t fac = 1;
+	for (int j = 0; j < 9; ++j)
 	{
 		offsets[j] = busIDs[j] - offsets[j] % busIDs[j];
 
