@@ -14,7 +14,6 @@ void executeDay<14>(const std::string& fn)
 	std::map<uint64_t, uint64_t> mem2;
 	uint64_t ones = 0;
 	uint64_t zeros = 0;
-	uint64_t mask = 0;
 	std::vector<unsigned> floatingPos;
 	{
 		std::ifstream infile(fn.c_str());
@@ -45,7 +44,6 @@ void executeDay<14>(const std::string& fn)
 					floatingPos.push_back(35 - pos);
 					++pos;
 				}
-				mask = stoull(mask1, 0, 2);
 			}
 
 			else if (target == "mem")
@@ -61,19 +59,15 @@ void executeDay<14>(const std::string& fn)
 				mem[a] = v;
 
 				// part b
-				a |= mask;
-
-				for (size_t j = 0; j < floatingPos.size(); ++j)
-					if ((a >> floatingPos[j]) % 2)
-						a -= uint64_t(1) << floatingPos[j];
-
-				size_t num = 1 << floatingPos.size();
+				a |= ones;
+				std::bitset<36> bsA(a);
+				const size_t num = 1 << floatingPos.size();
 				for (size_t i = 0; i < num; ++i)
 				{
-					uint64_t a2 = a;
+					std::bitset<36> bsI(i);
 					for (size_t j = 0; j < floatingPos.size(); ++j)
-						a2 += (uint64_t(1) << floatingPos[j]) * ((i >> j) % 2);
-					mem2[a2] = v2;
+						bsA[floatingPos[j]] = bsI[j];
+					mem2[bsA.to_ulong()] = v2;
 				}
 			}
 		}

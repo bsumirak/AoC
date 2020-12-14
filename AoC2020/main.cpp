@@ -21,6 +21,7 @@
 #include <list>
 #include <array>
 #include <regex>
+#include <bitset>
 
 
 // function template for every day
