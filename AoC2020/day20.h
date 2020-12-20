@@ -16,7 +16,6 @@ void executeDay<20>(const std::string& fn)
 		std::array<char, 100> image;
 		unsigned offset;
 		bool flipped;
-		std::array<unsigned, 4> neighbors;
 		std::array<unsigned, 4> borders;
 	};
 	std::vector<Node> nodes(144);
