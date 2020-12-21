@@ -12,8 +12,8 @@ void executeDay<21>(const std::string& fn)
 	// read input
 	struct Data
 	{
-		std::vector<std::string> ingr;
-		std::vector<std::string> allg;
+		std::set<std::string> ingr;
+		std::set<std::string> allg;
 	};
 	std::set<std::string> ingr;
 	std::set<std::string> allg;
@@ -28,8 +28,8 @@ void executeDay<21>(const std::string& fn)
 			Data& d = data.back();
 
 			std::string s;
-			std::vector<std::string>* v = &d.ingr;
-			std::set<std::string>* w = &ingr;
+			auto* v = &d.ingr;
+			auto* w = &ingr;
 			while (iss >> s)
 			{
 				if (s == "contains")
@@ -38,7 +38,7 @@ void executeDay<21>(const std::string& fn)
 					w = &allg;
 					iss >> s;
 				}
-				v->push_back(s);
+				v->insert(s);
 				w->insert(s);
 			}
 		}
@@ -56,7 +56,7 @@ void executeDay<21>(const std::string& fn)
 
 		for (const Data& d : data)
 		{
-			if (std::find(d.ingr.begin(), d.ingr.end(), i) != d.ingr.end())
+			if (d.ingr.find(i) != d.ingr.end())
 				continue;
 
 			for (const std::string& a : d.allg)
@@ -72,7 +72,7 @@ void executeDay<21>(const std::string& fn)
 	// part a
 	for (const auto& s: safe)
 		for (const Data& d : data)
-			if (std::find(d.ingr.begin(), d.ingr.end(), s) != d.ingr.end())
+			if (d.ingr.find(s) != d.ingr.end())
 				++resA;
 
 
