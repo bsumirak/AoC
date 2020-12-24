@@ -17,10 +17,8 @@ void executeDay<24>(const std::string& fn)
 	while (std::getline(infile, line))
 	{
 		std::istringstream iss(line);
+		std::pair<int, int> c(0, 0);
 		unsigned d;
-
-
-		std::pair<int, int> c;
 		while (iss >> d)
 		{
 			switch (d)
@@ -33,10 +31,7 @@ void executeDay<24>(const std::string& fn)
 				case 5: c.first += 1; c.second -= 1; break;
 			}
 		}
-		if (m.find(c) == m.end())
-			m[c] = true;
-		else
-			m[c] = !m[c];
+		m[c] = !m[c];
 	}
 	infile.close();
 
