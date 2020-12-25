@@ -17,6 +17,7 @@
 #include <utility>
 #include <iomanip>
 #include <queue>
+#include <stack>
 #include <cmath>
 #include <list>
 #include <array>
