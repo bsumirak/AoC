@@ -15,18 +15,35 @@ pub fn execute_day11(_fcr_fileName: &String)
 
 	let mut resA = 0;
 	let mut resB = 0;
-	for i in 1..1000
+	for i in 0..1000
 	{
 		let mut q = LinkedList::<usize>::new();
+		let mut allFlash = true;
 		
 		for o in 0..100
 		{
-			oct[o] += 1;
-			if oct[o] == 10
+			if oct[o] > 9
 			{
-				if i < 100 {resA += 1};
-				q.push_back(o);
+				if i <= 100
+				{
+					resA += 1;
+				}
+				oct[o] = 1;
 			}
+			else
+			{
+				oct[o] += 1;
+				allFlash = false;
+				if oct[o] == 10
+				{
+					q.push_back(o);
+				}
+			}
+		}
+		if allFlash
+		{
+			resB = i;
+			break;
 		}
 		
 		while !q.is_empty()
@@ -40,7 +57,6 @@ pub fn execute_day11(_fcr_fileName: &String)
 					oct[o - 11] += 1;
 					if oct[o - 11] == 10
 					{
-						if i < 100 {resA += 1};
 						q.push_back(o-11);
 					}
 				}
@@ -48,7 +64,6 @@ pub fn execute_day11(_fcr_fileName: &String)
 					oct[o - 10] += 1;
 					if oct[o - 10] == 10
 					{
-						if i < 100 {resA += 1};
 						q.push_back(o-10);
 					}
 				}
@@ -57,7 +72,6 @@ pub fn execute_day11(_fcr_fileName: &String)
 					oct[o - 9] += 1;
 					if oct[o - 9] == 10
 					{
-						if i < 100 {resA += 1};
 						q.push_back(o-9);
 					}
 				}
@@ -68,7 +82,6 @@ pub fn execute_day11(_fcr_fileName: &String)
 					oct[o - 1] += 1;
 					if oct[o - 1] == 10
 					{
-						if i < 100 {resA += 1};
 						q.push_back(o-1);
 					}
 				}
@@ -77,7 +90,6 @@ pub fn execute_day11(_fcr_fileName: &String)
 					oct[o + 1] += 1;
 					if oct[o + 1] == 10
 					{
-						if i < 100 {resA += 1};
 						q.push_back(o+1);
 					}
 				}
@@ -89,7 +101,6 @@ pub fn execute_day11(_fcr_fileName: &String)
 					oct[o + 9] += 1;
 					if oct[o + 9] == 10
 					{
-						if i < 100 {resA += 1};
 						q.push_back(o+9);
 					}
 				}
@@ -97,7 +108,6 @@ pub fn execute_day11(_fcr_fileName: &String)
 					oct[o + 10] += 1;
 					if oct[o + 10] == 10
 					{
-						if i < 100 {resA += 1};
 						q.push_back(o+10);
 					}
 				}
@@ -106,29 +116,10 @@ pub fn execute_day11(_fcr_fileName: &String)
 					oct[o + 11] += 1;
 					if oct[o + 11] == 10
 					{
-						if i < 100 {resA += 1};
 						q.push_back(o+11);
 					}
 				}
 			}
-		}
-		
-		let mut allFlash = true;
-		for o in 0..100
-		{
-			if oct[o] > 9
-			{
-				oct[o] = 0;
-			}
-			else
-			{
-				allFlash = false;
-			}
-		}
-		if allFlash
-		{
-			resB = i;
-			break;
 		}
 	}
 	
