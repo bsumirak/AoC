@@ -1,52 +1,51 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::collections::VecDeque;
+extern crate priority_queue;
+use priority_queue::PriorityQueue;
 
 
 fn findShortestPath<const L: usize, const LL: usize>(cave: &[u8; LL]) -> u32
 {
-	let mut pathLen: [u32; LL] = [20*L as u32; LL];
-	let initVal = (20*LL) as u32;
-	for i in 0..LL
-	{
-		pathLen[i] = initVal;
-	}
+	let mut vis = [false; LL];
+
+	let bigVal = (20*L) as u32;
 	
-	let mut q = VecDeque::<(usize, u32)>::new();
-	q.push_back((0, 0));
+	let mut q = PriorityQueue::<usize, u32>::new();
+	q.push(0, bigVal);
+	vis[0] = true;
 	while !q.is_empty()
 	{
-		let (pos, risk) = q.pop_front().unwrap();
-		
-		if pathLen[pos] <= risk
-		{
-			continue;
-		}
-		pathLen[pos] = risk;
+		let (pos, mut risk) = q.pop().unwrap();
+		risk = bigVal - risk;
+
 		if pos == LL-1
 		{
-			continue;
+			return risk;
 		}
 		
-		if pos >= L && pathLen[pos - L] > risk + cave[pos - L] as u32
+		if pos >= L && !vis[pos - L]
 		{
-			q.push_back((pos - L, risk + cave[pos - L] as u32));
+			vis[pos - L] = true;
+			q.push(pos - L, bigVal - (risk + cave[pos - L] as u32));
 		}
-		if pos < L*(L-1) && pathLen[pos + L] > risk + cave[pos + L] as u32
+		if pos < L*(L-1) && !vis[pos + L]
 		{
-			q.push_back((pos + L, risk + cave[pos + L] as u32));
+			vis[pos + L] = true;
+			q.push(pos + L, bigVal - (risk + cave[pos + L] as u32));
 		}
-		if pos % L != 0 && pathLen[pos - 1] > risk + cave[pos - 1] as u32
+		if pos % L != 0 && !vis[pos - 1]
 		{
-			q.push_back((pos - 1, risk + cave[pos - 1] as u32));
+			vis[pos - 1] = true;
+			q.push(pos - 1, bigVal - (risk + cave[pos - 1] as u32));
 		}
-		if pos % L != L-1 && pathLen[pos + 1] > risk + cave[pos + 1] as u32
+		if pos % L != L-1 && !vis[pos + 1]
 		{
-			q.push_back((pos + 1, risk + cave[pos + 1] as u32));
+			vis[pos + 1] = true;
+			q.push(pos + 1, bigVal - (risk + cave[pos + 1] as u32));
 		}
 	}
 	
-	return pathLen[LL-1];
+	return bigVal;
 }
 
 
