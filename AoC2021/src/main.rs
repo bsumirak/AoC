@@ -26,6 +26,7 @@ mod day21;
 mod day22;
 mod day23;
 mod day24;
+mod day25;
 
 
 fn main()
@@ -80,6 +81,7 @@ fn main()
 		22 => day22::execute_day22(&inputFileName),
 		23 => day23::execute_day23(&inputFileName),
 		24 => day24::execute_day24(&inputFileName),
+		25 => day25::execute_day25(&inputFileName),
 		_other => println!("Specified day ({}) is invalid.", day),
 	};
 }
