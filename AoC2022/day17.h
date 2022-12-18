@@ -6,38 +6,6 @@
  */
 
 
-struct State17
-{
-	std::vector<char> sfc;
-	unsigned pc = 0;
-	unsigned it = 0;
-	unsigned h = 0;
-
-	bool operator==(const State17& s) const
-	{
-		return sfc == s.sfc && (pc - s.pc) % 5 == 0 && (it - s.it) % js == 0;
-	}
-
-	bool operator<(const State17& s) const
-	{
-		if (sfc < s.sfc)
-			return true;
-		if (s.sfc < sfc)
-			return false;
-
-		if (pc % 5 < s.pc % 5)
-			return true;
-		if (s.pc % 5 < pc % 5)
-			return false;
-
-		return it % js < s.it % js;
-	}
-
-	static unsigned js;
-};
-unsigned State17::js = 1;
-
-
 template <>
 void executeDay<17>(const std::string& fn)
 {
@@ -47,28 +15,122 @@ void executeDay<17>(const std::string& fn)
 		infile >> jets;
 		infile.close();
 	}
-	State17::js = jets.size();
-	std::set<State17> states;
-	State17 latestState;
 
+	struct State
+	{
+		std::vector<char> sfc;
+		unsigned pc = 0;
+		unsigned it = 0;
+		unsigned h = 0;
+
+		bool operator<(const State& s) const
+		{
+			if (sfc < s.sfc)
+				return true;
+			if (s.sfc < sfc)
+				return false;
+
+			if (pc % 5 < s.pc % 5)
+				return true;
+			if (s.pc % 5 < pc % 5)
+				return false;
+
+			return it < s.it;
+		}
+	};
+
+	const std::array<std::vector<std::array<int, 2>>, 5> pieces =
+	{
+		std::vector<std::array<int, 2>>{{0, 0}, {1, 0}, {2, 0}, {3, 0}},
+		std::vector<std::array<int, 2>>{{0, 0}, {1, 0}, {2, 0}, {1, 1}, {1, -1}},
+		std::vector<std::array<int, 2>>{{0, 0}, {1, 0}, {2, 0}, {2, 1}, {2, 2}},
+		std::vector<std::array<int, 2>>{{0, 0}, {0, 1}, {0, 2}, {0, 3}},
+		std::vector<std::array<int, 2>>{{0, 0}, {1, 0}, {0, 1}, {1, 1}}
+	};
+	const std::array<std::vector<std::array<int, 2>>, 5> leftFront =
+	{
+		std::vector<std::array<int, 2>>{{0, 0}},
+		std::vector<std::array<int, 2>>{{0, 0}, {1, 1}, {1, -1}},
+		std::vector<std::array<int, 2>>{{0, 0}, {2, 1}, {2, 2}},
+		std::vector<std::array<int, 2>>{{0, 0}, {0, 1}, {0, 2}, {0, 3}},
+		std::vector<std::array<int, 2>>{{0, 0}, {0, 1}}
+	};
+	const std::array<std::vector<std::array<int, 2>>, 5> rightFront =
+	{
+		std::vector<std::array<int, 2>>{{3, 0}},
+		std::vector<std::array<int, 2>>{{2, 0}, {1, 1}, {1, -1}},
+		std::vector<std::array<int, 2>>{{2, 0}, {2, 1}, {2, 2}},
+		std::vector<std::array<int, 2>>{{0, 0}, {0, 1}, {0, 2}, {0, 3}},
+		std::vector<std::array<int, 2>>{{1, 0}, {1, 1}}
+	};
+	const std::array<std::vector<std::array<int, 2>>, 5> bottomFront =
+	{
+		std::vector<std::array<int, 2>>{{0, 0}, {1, 0}, {2, 0}, {3, 0}},
+		std::vector<std::array<int, 2>>{{0, 0}, {1, -1}, {2, 0}},
+		std::vector<std::array<int, 2>>{{0, 0}, {1, 0}, {2, 0}},
+		std::vector<std::array<int, 2>>{{0, 0}},
+		std::vector<std::array<int, 2>>{{0, 0}, {1, 0}}
+	};
+	std::array<unsigned, 7> maxElongRight = {3, 2, 2, 0, 1};
+	std::array<unsigned, 7> maxElongDown = {0, 1, 0, 0, 0};
+	std::array<unsigned, 7> maxElongUp = {0, 1, 2, 3, 1};
+	std::array<unsigned, 7> elongUp0 = {0, 0, 0, 3, 1};
 
 	std::bitset<100 * 7> space;
 
-	unsigned maxH = 0;
+	const auto leftMvmtOk = [&](unsigned pc, unsigned px, unsigned py)
+	{
+		if (px == 0)
+			return false;
+
+		for (const auto& front : leftFront[pc])
+			if (space[(py + front[1]) * 7u + px + front[0] - 1u])
+				return false;
+
+		return true;
+	};
+
+	const auto rightMvmtOk = [&](unsigned pc, unsigned px, unsigned py)
+	{
+		if (px >= 6u - maxElongRight[pc])
+			return false;
+
+		for (const auto& front : rightFront[pc])
+			if (space[(py + front[1]) * 7u + px + front[0] + 1u])
+				return false;
+
+		return true;
+	};
+
+	const auto downMvmtOk = [&](unsigned pc, unsigned px, unsigned py)
+	{
+		if (py <= maxElongDown[pc])
+			return false;
+
+		for (const auto& front : bottomFront[pc])
+			if (space[(py + front[1] - 1u) * 7u + px + front[0]])
+				return false;
+
+		return true;
+	};
+
+
+	unsigned maxHeight = 0;
 	unsigned elev0 = 0;
-	unsigned minElev = 0;
 	unsigned maxElev = 0;
 
 	unsigned resA = 0;
 
+	std::set<State> states;
+	State latestState;
+
 	unsigned it = 0;
 	unsigned pc = 0;
-	while (pc < jets.size() * 5 * 5000)
+	while (true)
 	{
+		const unsigned piece = pc % 5u;
 		unsigned posx = 2u;
-		unsigned posy = maxElev + 3u;
-		if (pc % 5u == 1)
-			posy += 1;
+		unsigned posy = maxElev + 3u + maxElongDown[piece];
 
 		if (posy >= 100)
 		{
@@ -78,168 +140,47 @@ void executeDay<17>(const std::string& fn)
 
 		while (true)
 		{
-			bool left = jets[it++ % jets.size()] == '<';
-
-			if (pc % 5u == 0)
+			if (jets[it++ % jets.size()] == '<')
 			{
-				if (left)
-				{
-					if (posx > 0u && !space[posy * 7u + posx - 1u])
-						--posx;
-				}
-				else
-				{
-					if (posx < 3u && !space[posy * 7u + posx + 4u])
-						++posx;
-				}
-
-				if (posy > 0 && !space[(posy - 1u) * 7u + posx] && !space[(posy - 1u) * 7u + posx + 1u]
-					&&!space[(posy - 1u) * 7u + posx + 2u] && !space[(posy - 1u) * 7u + posx + 3u])
-					--posy;
-				else
-				{
-					maxH = std::max(maxH, maxH + posy + 1u - maxElev);
-					space[posy * 7u + posx] = true;
-					space[posy * 7u + posx + 1u] = true;
-					space[posy * 7u + posx + 2u] = true;
-					space[posy * 7u + posx + 3u] = true;
-					if (posx == 0)
-						elev0 = posy + 1u;
-					break;
-				}
+				if (leftMvmtOk(piece, posx, posy))
+					--posx;
 			}
-			else if (pc % 5u == 1)
+			else
 			{
-				if (left)
-				{
-					if (posx > 0u && !space[posy * 7u + posx - 1u]
-						&& !space[(posy + 1u) * 7u + posx] && !space[(posy - 1u) * 7u + posx])
-						--posx;
-				}
-				else
-				{
-					if (posx < 4u && !space[posy * 7u + posx + 3u]
-						&& !space[(posy + 1u) * 7u + posx + 2u] && !space[(posy - 1u) * 7u + posx + 2u])
-						++posx;
-				}
-
-				if (posy > 1u && !space[(posy - 1u) * 7u + posx] && !space[(posy - 2u) * 7u + posx + 1u]
-					&&!space[(posy - 1u) * 7u + posx + 2u])
-					--posy;
-				else
-				{
-					maxH = std::max(maxH, maxH + posy + 2u - maxElev);
-					space[posy * 7u + posx] = true;
-					space[posy * 7u + posx + 1u] = true;
-					space[posy * 7u + posx + 2u] = true;
-					space[(posy + 1u) * 7u + posx + 1u] = true;
-					space[(posy - 1u) * 7u + posx + 1u] = true;
-					if (posx == 0)
-						elev0 = posy + 1u;
-					break;
-				}
+				if (rightMvmtOk(piece, posx, posy))
+					++posx;
 			}
-			else if (pc % 5u == 2)
-			{
-				if (left)
-				{
-					if (posx > 0u && !space[posy * 7u + posx - 1u]
-						&& !space[(posy + 1u) * 7u + posx + 1u] && !space[(posy + 2u) * 7u + posx + 1u])
-						--posx;
-				}
-				else
-				{
-					if (posx < 4u && !space[posy * 7u + posx + 3u]
-						&& !space[(posy + 1u) * 7u + posx + 3u] && !space[(posy + 2u) * 7u + posx + 3u])
-						++posx;
-				}
 
-				if (posy > 0 && !space[(posy - 1u) * 7u + posx] && !space[(posy - 1u) * 7u + posx + 1u]
-					&&!space[(posy - 1u) * 7u + posx + 2u])
-					--posy;
-				else
-				{
-					maxH = std::max(maxH, maxH + posy + 3u - maxElev);
-					space[posy * 7u + posx] = true;
-					space[posy * 7u + posx + 1u] = true;
-					space[posy * 7u + posx + 2u] = true;
-					space[(posy + 1u) * 7u + posx + 2u] = true;
-					space[(posy + 2u) * 7u + posx + 2u] = true;
-					if (posx == 0)
-						elev0 = posy + 1u;
-					break;
-				}
-			}
-			else if (pc % 5u == 3)
+			if (downMvmtOk(piece, posx, posy))
+				--posy;
+			else
 			{
-				if (left)
-				{
-					if (posx > 0u && !space[posy * 7u + posx - 1u] && !space[(posy + 1u) * 7u + posx - 1u]
-						&& !space[(posy + 2u) * 7u + posx - 1u] && !space[(posy + 3u) * 7u + posx - 1u])
-						--posx;
-				}
-				else
-				{
-					if (posx < 6u && !space[posy * 7u + posx + 1u] && !space[(posy + 1u) * 7u + posx + 1u]
-						&& !space[(posy + 2u) * 7u + posx + 1u] && !space[(posy + 3u) * 7u + posx + 1u])
-						++posx;
-				}
+				unsigned addElev = posy + maxElongUp[piece] + 1u > maxElev ?
+					posy + maxElongUp[piece] + 1u - maxElev : 0;
+				maxElev += addElev;
+				maxHeight += addElev;
 
-				if (posy > 0 && !space[(posy - 1u) * 7u + posx])
-					--posy;
-				else
-				{
-					maxH = std::max(maxH, maxH + posy + 4u - maxElev);
-					space[posy * 7u + posx] = true;
-					space[(posy + 1u) * 7u + posx] = true;
-					space[(posy + 2u) * 7u + posx] = true;
-					space[(posy + 3u) * 7u + posx] = true;
-					if (posx == 0)
-						elev0 = posy + 4u;
-					break;
-				}
-			}
-			else if (pc % 5u == 4)
-			{
-				if (left)
-				{
-					if (posx > 0u && !space[posy * 7u + posx - 1u] && !space[(posy + 1u) * 7u + posx - 1u])
-						--posx;
-				}
-				else
-				{
-					if (posx < 5u && !space[posy * 7u + posx + 2u] && !space[(posy + 1u) * 7u + posx + 2u])
-						++posx;
-				}
+				for (const auto& p : pieces[piece])
+					space[(posy + p[1]) * 7u + posx + p[0]] = true;
 
-				if (posy > 0 && !space[(posy - 1u) * 7u + posx] && !space[(posy - 1u) * 7u + posx + 1u])
-					--posy;
-				else
-				{
-					maxH = std::max(maxH, maxH + posy + 2u - maxElev);
-					space[posy * 7u + posx] = true;
-					space[posy * 7u + posx + 1u] = true;
-					space[(posy + 1u) * 7u + posx] = true;
-					space[(posy + 1u) * 7u + posx + 1u] = true;
-					if (posx == 0)
-						elev0 = posy + 2u;
-					break;
-				}
+				if (posx == 0)
+					elev0 = posy + 1u + elongUp0[piece];
+
+				break;
 			}
 		}
 
 		++pc;
 		if (pc == 2022)
-			resA = maxH;
+			resA = maxHeight;
 
-		// compute the heap surface shape and its min and max elevation
+		// compute the heap surface shape and its min elevation
 		std::vector<char> sfc;
 		int px = 1;
 		int py = elev0;
-		minElev = py;
-		maxElev = py;
 		int dx = 1;
 		int dy = 0;
+		unsigned minElev = py;
 		while (px < 7)
 		{
 			int cx = px + (dx - dy - 1) / 2;
@@ -258,8 +199,22 @@ void executeDay<17>(const std::string& fn)
 			py += dy;
 			sfc.push_back((char)((3+3*dx+dy)/2));
 			minElev = std::min(minElev, (unsigned)py);
-			maxElev = std::max(maxElev, (unsigned)py);
 		}
+
+		/*
+		if (pc < 20)
+		{
+			for (size_t i = maxElev; i < maxElev + 1; --i)
+			{
+				std::cout << "|";
+				for (size_t k = 0; k < 7; ++k)
+					std::cout << (space[7u * i + k] ? '#' : '.');
+				std::cout << "|" << std::endl;
+			}
+			std::cout << "+-------+" << std::endl;
+			std::cout << std::endl;
+		}
+		*/
 
 		// throw away lines below the min elevation
 		maxElev -= minElev;
@@ -267,24 +222,25 @@ void executeDay<17>(const std::string& fn)
 		space >>= 7u * minElev;
 
 		// save current state
-		State17 state;
+		State state;
 		state.sfc = sfc;
 		state.pc = pc;
-		state.it = it;
-		state.h = maxH;
+		state.it = it % jets.size();
+		state.h = maxHeight;
 
-		// if state has occurred before, part b is finished
+		// if state has occurred before, we are finished for part b here
 		if (!states.insert(state).second)
 		{
 			if (latestState.pc == 0)
 				latestState = state;
 
+			// if part a is also finished, leave
 			if (pc >= 2022)
 				break;
 		}
 	}
 
-	// part b
+	// part b post-computation
 	uint64_t resB = 0;
 	const auto first = states.find(latestState);
 	if (first != states.end())
@@ -298,7 +254,7 @@ void executeDay<17>(const std::string& fn)
 
 		uint64_t rest = uint64_t(1000000000000) - (pca + periods * (pcb - pca));
 		const auto restIt = std::find_if(states.begin(), states.end(),
-			[&](const State17& s){ return s.pc == first->pc + rest;});
+			[&](const State& s){ return s.pc == first->pc + rest;});
 		uint64_t hr = (restIt)->h;
 
 		resB = dh * periods + hr;
