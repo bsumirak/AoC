@@ -14,10 +14,16 @@ struct Node16
 };
 
 
-void traverse16(std::array<Node16, 26*26>& valves, unsigned pos, unsigned time,
-	unsigned release, unsigned& maxRelease)
+void traverse16(std::array<Node16, 26*26>& valves, unsigned prevPos, unsigned pos,
+	unsigned time, unsigned release, unsigned& maxRelease, unsigned maxFlow, unsigned minDist)
 {
 	if (time <= 1)
+		return;
+
+	// if we cannot get more than we already found, stop right here
+	unsigned t = (time + 1) / minDist;
+	unsigned rest = (t * time - t * (minDist * t + 2u - minDist) / 2u) * maxFlow;
+	if (release + rest < maxRelease)
 		return;
 
 	auto& v = valves[pos];
@@ -28,21 +34,30 @@ void traverse16(std::array<Node16, 26*26>& valves, unsigned pos, unsigned time,
 		release += pressure;
 		maxRelease = std::max(release, maxRelease);
 
-		traverse16(valves, pos, time - 1, release, maxRelease);
+		traverse16(valves, prevPos, pos, time - 1, release, maxRelease, maxFlow, minDist);
 		release -= pressure;
 		v.open = false;
 	}
-	else // this is not correct in general, I think, but yields correct result
+
 	for (auto& adj : v.adj)
 		if (adj.second < time)
-			traverse16(valves, adj.first, time - adj.second, release, maxRelease);
+			traverse16(valves, pos, adj.first, time - adj.second, release, maxRelease, maxFlow, minDist);
 }
 
 
-void traverse16WithElephant(std::array<Node16, 26*26>& valves, unsigned pos, unsigned posE, unsigned time, unsigned timeE,
-	unsigned release, unsigned& maxRelease)
+void traverse16WithElephant(std::array<Node16, 26*26>& valves, unsigned prevPos, unsigned pos,
+	unsigned prevPosE, unsigned posE, unsigned time, unsigned timeE, unsigned release,
+	unsigned& maxRelease, unsigned maxFlow, unsigned minDist)
 {
 	if (time <= 1 && timeE <= 1)
+		return;
+
+	// if we cannot get more than we already found, stop right here
+	unsigned t = (time + 1) / minDist;
+	unsigned te = (timeE + 1) / minDist;
+	unsigned rest = (t * time - t * (minDist * t + 2u - minDist) / 2u
+		+ te * timeE - te * (minDist * te + 2u - minDist) / 2u) * maxFlow;
+	if (release + rest < maxRelease)
 		return;
 
 	if (time >= timeE)
@@ -56,14 +71,22 @@ void traverse16WithElephant(std::array<Node16, 26*26>& valves, unsigned pos, uns
 			//if (release > maxRelease)
 			//	std::cout << release << std::endl;
 			maxRelease = std::max(release, maxRelease);
-			traverse16WithElephant(valves, pos, posE, time - 1, timeE, release, maxRelease);
+			traverse16WithElephant(valves, prevPos, pos, prevPosE, posE, time - 1, timeE, release, maxRelease, maxFlow, minDist);
 			release -= pressure;
 			v.open = false;
 		}
-		else // this is not correct in general, I think, but yields correct result
+
+		bool foundWayToGo = false;
 		for (auto& adj : v.adj)
+		{
 			if (adj.second < time)
-				traverse16WithElephant(valves, adj.first, posE, time - adj.second, timeE, release, maxRelease);
+			{
+				foundWayToGo = true;
+				traverse16WithElephant(valves, pos, adj.first, prevPosE, posE, time - adj.second, timeE, release, maxRelease, maxFlow, minDist);
+			}
+		}
+		if (!foundWayToGo)
+			traverse16WithElephant(valves, pos, pos, prevPosE, posE, 0, timeE, release, maxRelease, maxFlow, minDist);
 	}
 	else
 	{
@@ -76,14 +99,22 @@ void traverse16WithElephant(std::array<Node16, 26*26>& valves, unsigned pos, uns
 			//if (release > maxRelease)
 			//	std::cout << release << std::endl;
 			maxRelease = std::max(release, maxRelease);
-			traverse16WithElephant(valves, pos, posE, time, timeE - 1, release, maxRelease);
+			traverse16WithElephant(valves, prevPos, pos, prevPosE, posE, time, timeE - 1, release, maxRelease, maxFlow, minDist);
 			release -= pressure;
 			v.open = false;
 		}
-		else // this is not correct in general, I think, but yields correct result
+
+		bool foundWayToGo = false;
 		for (auto& adj : v.adj)
+		{
 			if (adj.second < timeE)
-				traverse16WithElephant(valves, pos, adj.first, time, timeE - adj.second, release, maxRelease);
+			{
+				foundWayToGo = true;
+				traverse16WithElephant(valves, prevPos, pos, posE, adj.first, time, timeE - adj.second, release, maxRelease, maxFlow, minDist);
+			}
+		}
+		if (!foundWayToGo)
+			traverse16WithElephant(valves, prevPos, pos, posE, posE, time, 0, release, maxRelease, maxFlow, minDist);
 	}
 }
 
@@ -92,6 +123,7 @@ template <>
 void executeDay<16>(const std::string& fn)
 {
 	// read input
+	unsigned maxFlow = 0;
 	std::array<Node16, 26*26> valves;
 	{
 		std::ifstream infile(fn.c_str());
@@ -106,6 +138,7 @@ void executeDay<16>(const std::string& fn)
 			unsigned vid = 26u * (unsigned)(c1 - 'A') + (unsigned)(c2 - 'A');
 
 			iss >> valves[vid].flow;
+			maxFlow = std::max(maxFlow, valves[vid].flow);
 
 			while (iss >> c1)
 			{
@@ -156,7 +189,19 @@ void executeDay<16>(const std::string& fn)
 		}
 	}
 
-/*
+	// sort adjacency lists in descending order of flowRate and find minDist
+	unsigned minDist = std::numeric_limits<unsigned>::max();
+	for (auto& v : valves)
+	{
+		std::sort(v.adj.begin(), v.adj.end(),
+			[&](const std::pair<unsigned, unsigned>& a1, std::pair<unsigned, unsigned>& a2)
+			{return valves[a1.first].flow > valves[a2.first].flow;});
+
+		for (auto& a : v.adj)
+			minDist = std::min(minDist + 1, a.second);
+	}
+
+	/*
 	for (unsigned k = 0; k < 26*26; ++k)
 	{
 		if (valves[k].adj.empty())
@@ -167,13 +212,13 @@ void executeDay<16>(const std::string& fn)
 			std::cout << (char)('A'+ (adj.first/26u)) << (char)('A' + adj.first % 26u) << "(" << adj.second << ") ";
 		std::cout << std::endl;
 	}
-*/
+	*/
 
 	unsigned pos = 0;
 	unsigned time = 30;
 	unsigned release = 0;
 	unsigned maxRelease = 0;
-	traverse16(valves, pos, time, release, maxRelease);//, 0, numReleasable - 1);
+	traverse16(valves, pos, pos, time, release, maxRelease, maxFlow, minDist);//, 0, numReleasable - 1);
 	unsigned resA = maxRelease;
 
 	// part b
@@ -181,7 +226,7 @@ void executeDay<16>(const std::string& fn)
 	time = 26;
 	release = 0;
 	maxRelease = 0;
-	traverse16WithElephant(valves, pos, pos, time, time, release, maxRelease);
+	traverse16WithElephant(valves, pos, pos, pos, pos, time, time, release, maxRelease, maxFlow, minDist);
 	unsigned resB = maxRelease;
 
 
