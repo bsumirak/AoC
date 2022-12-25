@@ -41,10 +41,10 @@ void executeDay<25>(const std::string& fn)
 	{
 		auto r = sum % 5;
 		if (r < 3)
-			resA.insert(resA.begin(), '0' + r);
+			resA.insert(0, 1, '0' + r);
 		else
 		{
-			resA.insert(resA.begin(), r == 3 ? '=' : '-');
+			resA.insert(0, 1, r == 3 ? '=' : '-');
 			sum += 5;
 		}
 		sum /= 5;
