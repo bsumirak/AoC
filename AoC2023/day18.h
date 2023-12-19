@@ -31,7 +31,7 @@ void executeDay<18>(const std::string& fn)
 
 	const auto computeLagoonVolume = [](const std::vector<std::array<unsigned, 2>>& diggingPlan)
 	{
-		std::map<int, std::vector<std::array<int, 2>>> horizTrenchMap;
+		std::set<std::array<int, 3>> horizTrenches;
 		std::set<std::array<int, 3>> vertTrenches;
 	
 		int minX = std::numeric_limits<int>::max();
@@ -46,10 +46,7 @@ void executeDay<18>(const std::string& fn)
 			{
 				case 0:
 				{
-					auto& trenchesInRow = horizTrenchMap[pos[1]];
-					const auto insIt = std::upper_bound(trenchesInRow.begin(), trenchesInRow.end(), pos[0],
-						[](int val, const std::array<int, 2>& array) {return val < array[0];});
-					trenchesInRow.insert(insIt, {pos[0], pos[0] + (int)dig[1]});
+					horizTrenches.insert({pos[1], pos[0], pos[0] + (int)dig[1]});
 					pos[0] += dig[1];
 					maxX = std::max(maxX, pos[0]);
 					break;
@@ -61,10 +58,7 @@ void executeDay<18>(const std::string& fn)
 					break;
 				case 2:
 				{
-					auto& trenchesInRow = horizTrenchMap[pos[1]];
-					const auto insIt = std::upper_bound(trenchesInRow.begin(), trenchesInRow.end(), pos[0] - dig[1],
-						[](int val, const std::array<int, 2>& array) {return val < array[0];});
-					trenchesInRow.insert(insIt, {pos[0] - (int)dig[1], pos[0]});
+					horizTrenches.insert({pos[1], pos[0] - (int)dig[1], pos[0]});
 					pos[0] -= dig[1];
 					minX = std::min(minX, pos[0]);
 					break;
@@ -80,8 +74,12 @@ void executeDay<18>(const std::string& fn)
 		uint64_t ret = 0;
 
 		std::vector<std::array<int, 3>> actVertTrenches;
+		std::vector<std::array<int, 3>> actHorizTrenches;
 		auto vertTrenchesIt = vertTrenches.begin();
-	
+		auto horizTrenchesIt = horizTrenches.begin();
+		
+		bool prevLineHadHorizTrench = false;
+		unsigned prevVal = 0;
 		for (int y = minY; y <= maxY; ++y)
 		{
 			// remove ended vertical trenches
@@ -90,30 +88,42 @@ void executeDay<18>(const std::string& fn)
 			actVertTrenches.erase(eraseIt, actVertTrenches.end());
 		
 			// insert possible new vertical trenches
-			while ((*vertTrenchesIt)[0] == y)
+			while (vertTrenchesIt != vertTrenches.end() && (*vertTrenchesIt)[0] == y)
 			{
 				const auto insIt = std::upper_bound(actVertTrenches.begin(), actVertTrenches.end(), (*vertTrenchesIt)[2],
 					[](int val, const std::array<int, 3>& array){return val < array[2];});
 				actVertTrenches.insert(insIt, *vertTrenchesIt);
 				++vertTrenchesIt;
 			}
-		
-			const auto horizIt = horizTrenchMap.find(y);
-			const std::vector<std::array<int, 2>>& actHorizTrenches = 
-				horizIt != horizTrenchMap.end() ? horizIt->second : std::vector<std::array<int, 2>>(0);
-	
+			
+			// get current horizontal trenches		
+			actHorizTrenches.clear();
+			while (horizTrenchesIt != horizTrenches.end() && (*horizTrenchesIt)[0] == y)
+			{
+				actHorizTrenches.push_back(*horizTrenchesIt);
+				++horizTrenchesIt;
+			}
+			
 			auto horizTrenchIt = actHorizTrenches.begin();
 			auto vertTrenchIt = actVertTrenches.begin();
 
-			enum State{OUT = 0, IN};
+			if (actHorizTrenches.empty() && !prevLineHadHorizTrench)
+			{
+				ret += prevVal;
+				continue;
+			}
 			
+			unsigned curVal = 0;
+			
+			enum State{OUT = 0, IN};
 			State state = OUT;
 			int prevEntry = 0;
+			
 			while (horizTrenchIt != actHorizTrenches.end() || vertTrenchIt != actVertTrenches.end())
 			{
 				// next trench is pure vertical
 				if (vertTrenchIt != actVertTrenches.end()
-					&& (horizTrenchIt == actHorizTrenches.end() || (*horizTrenchIt)[0] > (*vertTrenchIt)[2]))
+					&& (horizTrenchIt == actHorizTrenches.end() || (*horizTrenchIt)[1] > (*vertTrenchIt)[2]))
 				{
 					if (state == OUT)
 					{
@@ -122,7 +132,7 @@ void executeDay<18>(const std::string& fn)
 					}
 					else if (state == IN)
 					{
-						ret += (*vertTrenchIt)[2] - prevEntry + 1;
+						curVal += (*vertTrenchIt)[2] - prevEntry + 1;
 						state = OUT;
 					}
 				
@@ -132,6 +142,8 @@ void executeDay<18>(const std::string& fn)
 				// next trench is horizontal
 				else
 				{
+					prevLineHadHorizTrench = true;
+					
 					// it must be a corner
 					bool isLowerBorder = (state == OUT) == ((*vertTrenchIt)[0] == y);
 					if (state == OUT)
@@ -144,7 +156,7 @@ void executeDay<18>(const std::string& fn)
 								
 					while (true)
 					{
-						if ((*vertTrenchIt)[2] != (*horizTrenchIt)[1])
+						if ((*vertTrenchIt)[2] != (*horizTrenchIt)[2])
 							++horizTrenchIt;
 						else
 							break;
@@ -153,8 +165,8 @@ void executeDay<18>(const std::string& fn)
 					bool nextStateIsOut = isLowerBorder == ((*vertTrenchIt)[0] == y);
 					if (nextStateIsOut)
 					{
-						if (state)
-							ret += (*vertTrenchIt)[2] - prevEntry + 1;
+						if (state == IN)
+							curVal += (*vertTrenchIt)[2] - prevEntry + 1;
 						state = OUT;
 					}
 					else
@@ -168,6 +180,9 @@ void executeDay<18>(const std::string& fn)
 					++vertTrenchIt;
 				}
 			}
+			
+			ret += curVal;
+			prevVal = curVal;
 		}
 	
 		return ret;
