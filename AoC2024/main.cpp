@@ -36,8 +36,8 @@ template <typename A, typename B>
 void writeSolution(A a, B b);
 
 
-#if 0
 #include "day01.h"
+#if 0
 #include "day02.h"
 #include "day03.h"
 #include "day04.h"
