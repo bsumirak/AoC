@@ -17,7 +17,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${ROOT_DIR}/lib)
 #endif()
 set(exclude_warnings "-Wno-unused-parameter")
 set(warnings "-Wall -Wextra")
-set(cxx_flags "${warnings} ${exclude_warnings} ${additionalFlags} -pedantic -std=c++17")
+set(cxx_flags "${warnings} ${exclude_warnings} ${additionalFlags} -pedantic -std=c++20")
 
 if (DEBUG)
 	set(cxx_flags "${cxx_flags} -g -D__DEBUG__ -O0")
