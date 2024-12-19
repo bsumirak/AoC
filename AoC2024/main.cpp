@@ -24,6 +24,7 @@
 #include <regex>
 #include <bitset>
 #include <iterator>
+#include <ranges>
 
 
 // function template for every day
@@ -51,8 +52,8 @@ void writeSolution(A a, B b);
 #include "day13.h"
 #include "day14.h"
 #include "day15.h"
-#if 0
 #include "day16.h"
+#if 0
 #include "day17.h"
 #include "day18.h"
 #include "day19.h"
