@@ -37,7 +37,6 @@ void executeDay(const std::string& fn) {}
 template <typename A, typename B>
 void writeSolution(A a, B b);
 
-
 #include "day01.h"
 #include "day02.h"
 #include "day03.h"
@@ -62,9 +61,7 @@ void writeSolution(A a, B b);
 #include "day22.h"
 #include "day23.h"
 #include "day24.h"
-#if 0
 #include "day25.h"
-#endif
 
 template <typename A, typename B>
 void writeSolution(A a, B b)
